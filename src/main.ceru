@@ -14,13 +14,16 @@ fn main() -> void {
         if state.slime_hp <= 0 {
             print("You win!");
             finished = true;
-        } else if state.hero_hp <= 0 {
+        }
+        if state.hero_hp <= 0 {
             print("Game over.");
             finished = true;
-        } else if state.escaped {
+        }
+        if state.escaped {
             print("You escaped.");
             finished = true;
-        } else {
+        }
+        if !finished {
             print("Choose an action:");
             print("1. Attack");
             print("2. Heal");
