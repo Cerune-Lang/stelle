@@ -1,39 +1,52 @@
 import "battle.ceru" as battle;
+import "std:io" as io;
 
 fn main() -> void {
     print("Stelle");
     print("A slime appears!");
 
     mut state: battle::Battle = battle::start();
-    battle::show(state);
+    mut finished: bool = false;
 
-    // Cerune has no interactive stdin primitive yet, so this tiny CLI scenario
-    // scripts the commands instead of duplicating the game in another language.
-    print("> attack");
-    state = battle::step(state, battle::Action::Attack {});
-    battle::show(state);
+    while !finished {
+        battle::show(state);
 
-    print("> heal");
-    state = battle::step(state, battle::Action::Heal {});
-    battle::show(state);
+        if state.slime_hp <= 0 {
+            print("You win!");
+            finished = true;
+        } else if state.hero_hp <= 0 {
+            print("Game over.");
+            finished = true;
+        } else if state.escaped {
+            print("You escaped.");
+            finished = true;
+        } else {
+            print("Choose an action:");
+            print("1. Attack");
+            print("2. Heal");
+            print("3. Run");
+            print(">");
+            // Input is not implicitly flushed by Cerune.
+            flush();
 
-    print("> attack");
-    state = battle::step(state, battle::Action::Attack {});
-    battle::show(state);
-
-    print("> attack");
-    state = battle::step(state, battle::Action::Attack {});
-    battle::show(state);
-
-    if state.slime_hp <= 0 {
-        print("You win!");
-    }
-
-    if state.hero_hp <= 0 {
-        print("Game over.");
-    }
-
-    if state.escaped {
-        print("You escaped.");
+            input: io::ReadLine = io::read_line(64);
+            match input {
+                io::ReadLine::Line { text: text } => {
+                    if text == "1\n" || text == "1\r\n" || text == "1" {
+                        state = battle::step(state, battle::Action::Attack {});
+                    } else if text == "2\n" || text == "2\r\n" || text == "2" {
+                        state = battle::step(state, battle::Action::Heal {});
+                    } else if text == "3\n" || text == "3\r\n" || text == "3" {
+                        state = battle::step(state, battle::Action::Run {});
+                    } else {
+                        print("Invalid action. Enter 1, 2 or 3.");
+                    }
+                },
+                io::ReadLine::End {} => {
+                    print("Input ended.");
+                    finished = true;
+                },
+            }
+        }
     }
 }
