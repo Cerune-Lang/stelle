@@ -1,0 +1,40 @@
+import "battle.ceru" as battle;
+
+// All checks print true. No renderer is used.
+mut state: battle::Battle = battle::start();
+print(state.hero_hp == 10);
+print(state.slime_hp == 12);
+print(state.potions == 1);
+
+first: battle::Turn = battle::advance(state, battle::Action::Attack {});
+print(first.state.hero_hp == 8);
+print(first.state.slime_hp == 8);
+print(first.enemy_attacked);
+
+second: battle::Turn = battle::advance(first.state, battle::Action::Heal {});
+print(second.state.hero_hp == 8);
+print(second.state.potions == 0);
+print(second.enemy_attacked);
+
+no_potions: battle::Turn = battle::advance(second.state, battle::Action::Heal {});
+print(no_potions.state.potions == 0);
+print(no_potions.state.hero_hp == 6);
+
+run: battle::Turn = battle::advance(state, battle::Action::Run {});
+print(run.state.escaped);
+print(run.state.hero_hp == 10);
+print(!run.enemy_attacked);
+
+after_run: battle::Turn = battle::advance(run.state, battle::Action::Attack {});
+print(after_run.state.slime_hp == 12);
+print(!after_run.enemy_attacked);
+
+third: battle::Turn = battle::advance(first.state, battle::Action::Attack {});
+fourth: battle::Turn = battle::advance(third.state, battle::Action::Attack {});
+print(fourth.state.slime_hp == 0);
+print(fourth.state.hero_hp == 6);
+print(!fourth.enemy_attacked);
+
+after_win: battle::Turn = battle::advance(fourth.state, battle::Action::Attack {});
+print(after_win.state.hero_hp == 6);
+print(after_win.state.slime_hp == 0);

@@ -38,11 +38,25 @@ A slime appears!
 
 ```text
 src/main.ceru      CLI scenario / command source
-src/battle.ceru    battle state and game rules
+src/battle.ceru    battle state, pure transitions and CLI messages
+src/engine_checks.ceru  engine regression checks
+scripts/check_engine.py   four-route test runner
 ```
 
-`battle.ceru` owns the actual RPG state transitions. `main.ceru` only chooses
-which actions happen and prints the resulting state.
+`battle.ceru` owns the RPG rules. `battle::advance(state, action)` returns a `Turn`
+with the next state and presentation events **without printing**. `battle::step`
+is a compatibility wrapper which renders those events, so the existing CLI demo
+still works. `main.ceru` chooses actions and displays the resulting state.
+
+## Game engine tests
+
+```sh
+python3 scripts/check_engine.py --binary cerune
+```
+
+The checks verify damage, healing limits, potion use, escape, victory and
+terminal turns across IR/MIR/SSA/VM, using independent expected output. The
+GitHub Actions workflow builds Cerune and runs the same checks.
 
 ## Why the GUI host is gone
 

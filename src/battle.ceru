@@ -11,6 +11,22 @@ pub enum Action {
     Run,
 }
 
+// An engine turn contains all state changes and presentation events.
+// The rules below never print: callers can render or simulate turns.
+pub enum Event {
+    Attack,
+    Heal,
+    NoPotions,
+    Run,
+    None,
+}
+
+pub type Turn {
+    state: Battle,
+    event: Event,
+    enemy_attacked: bool,
+}
+
 pub fn start() -> Battle {
     return Battle {
         hero_hp: 10,
@@ -24,11 +40,9 @@ fn clamp_hero_hp(value: i64) -> i64 {
     if value < 0 {
         return 0;
     }
-
     if value > 10 {
         return 10;
     }
-
     return value;
 }
 
@@ -36,33 +50,24 @@ fn clamp_slime_hp(value: i64) -> i64 {
     if value < 0 {
         return 0;
     }
-
     return value;
 }
 
-fn enemy_turn(state: Battle) -> Battle {
-    if state.slime_hp <= 0 || state.escaped {
-        return state;
-    }
-
-    print("Slime attacks for 2.");
-
-    return Battle {
-        ..state,
-        hero_hp: clamp_hero_hp(state.hero_hp - 2),
-    };
-}
-
-pub fn step(state: Battle, action: Action) -> Battle {
+// Pure transition: UI code must not decide damage, resource use, or turn order.
+pub fn advance(state: Battle, action: Action) -> Turn {
     if state.hero_hp <= 0 || state.slime_hp <= 0 || state.escaped {
-        return state;
+        return Turn {
+            state: state,
+            event: Event::None {},
+            enemy_attacked: false,
+        };
     }
 
     mut next: Battle = state;
+    mut event: Event = Event::Attack {};
 
     match action {
         Action::Attack {} => {
-            print("You attack for 4.");
             next = Battle {
                 ..state,
                 slime_hp: clamp_slime_hp(state.slime_hp - 4),
@@ -70,26 +75,52 @@ pub fn step(state: Battle, action: Action) -> Battle {
         },
         Action::Heal {} => {
             if state.potions > 0 {
-                print("You drink a potion (+3 HP).");
+                event = Event::Heal {};
                 next = Battle {
                     ..state,
                     hero_hp: clamp_hero_hp(state.hero_hp + 3),
                     potions: state.potions - 1,
                 };
             } else {
-                print("No potions left.");
+                event = Event::NoPotions {};
             }
         },
         Action::Run {} => {
-            print("You run away.");
-            next = Battle {
-                ..state,
-                escaped: true,
-            };
+            event = Event::Run {};
+            next = Battle { ..state, escaped: true };
         },
     }
 
-    return enemy_turn(next);
+    mut enemy_attacked: bool = false;
+    if next.slime_hp > 0 && !next.escaped {
+        enemy_attacked = true;
+        next = Battle {
+            ..next,
+            hero_hp: clamp_hero_hp(next.hero_hp - 2),
+        };
+    }
+
+    return Turn {
+        state: next,
+        event: event,
+        enemy_attacked: enemy_attacked,
+    };
+}
+
+// Compatibility wrapper for the current CLI demo.
+pub fn step(state: Battle, action: Action) -> Battle {
+    turn: Turn = advance(state, action);
+    match turn.event {
+        Event::Attack {} => { print("You attack for 4."); },
+        Event::Heal {} => { print("You drink a potion (+3 HP)."); },
+        Event::NoPotions {} => { print("No potions left."); },
+        Event::Run {} => { print("You run away."); },
+        Event::None {} => {},
+    }
+    if turn.enemy_attacked {
+        print("Slime attacks for 2.");
+    }
+    return turn.state;
 }
 
 pub fn show(state: Battle) -> void {
