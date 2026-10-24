@@ -1,0 +1,33 @@
+name: Stelle game engine
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: stelle
+      - uses: actions/checkout@v4
+        with:
+          repository: Cerune-Lang/Cerune
+          ref: master
+          path: cerune
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.0
+      - name: Build Cerune
+        working-directory: cerune
+        run: cargo build --locked --bin cerune
+      - name: Test pure battle engine
+        run: python3 stelle/scripts/check_engine.py --binary cerune/target/debug/cerune
+      - name: Check CLI demo
+        run: cerune/target/debug/cerune check stelle/src/main.ceru
