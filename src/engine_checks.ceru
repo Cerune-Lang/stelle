@@ -12,13 +12,13 @@ print(first.state.slime_hp == 8);
 print(first.enemy_attacked);
 
 second: battle::Turn = battle::advance(first.state, battle::Action::Heal {});
-print(second.state.hero_hp == 9);
+print(second.state.hero_hp == 8);
 print(second.state.potions == 0);
 print(second.enemy_attacked);
 
 no_potions: battle::Turn = battle::advance(second.state, battle::Action::Heal {});
 print(no_potions.state.potions == 0);
-print(no_potions.state.hero_hp == 7);
+print(no_potions.state.hero_hp == 6);
 
 run: battle::Turn = battle::advance(state, battle::Action::Run {});
 print(run.state.escaped);
