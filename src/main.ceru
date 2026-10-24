@@ -35,13 +35,20 @@ fn main() -> void {
             input: io::ReadLine = io::read_line(64);
             match input {
                 io::ReadLine::Line { text: text } => {
+                    mut valid: bool = false;
                     if text == "1\n" || text == "1\r\n" || text == "1" {
                         state = battle::step(state, battle::Action::Attack {});
-                    } else if text == "2\n" || text == "2\r\n" || text == "2" {
+                        valid = true;
+                    }
+                    if text == "2\n" || text == "2\r\n" || text == "2" {
                         state = battle::step(state, battle::Action::Heal {});
-                    } else if text == "3\n" || text == "3\r\n" || text == "3" {
+                        valid = true;
+                    }
+                    if text == "3\n" || text == "3\r\n" || text == "3" {
                         state = battle::step(state, battle::Action::Run {});
-                    } else {
+                        valid = true;
+                    }
+                    if !valid {
                         print("Invalid action. Enter 1, 2 or 3.");
                     }
                 },
