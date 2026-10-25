@@ -47,3 +47,21 @@ python3 scripts/check_interactive.py --binary cerune
 ```
 
 The interactive checks feed exact bytes through pipes (not Windows console input), covering victory, escape, invalid actions, healing, potion depletion, defeat, CRLF, final lines without newline and EOF. CI builds Cerune before running the checks.
+
+## Chapter 1: The Village Without a Bridge (preview)
+
+A playable story vertical slice is available separately from the existing battle demo:
+
+```sh
+cerune run src/chapter1.ceru
+```
+
+Move with `w`/`a`/`s`/`d`, investigate the current tile with `e`, or quit with `q`. Press Enter after each command. The `@` symbol marks your position. Speak with Lyuna at the starting tile to receive the star lantern, find a star shard in the forest, reactivate the beacon, cross the restored bridge and read the diary in the house. There is no combat in this preview yet.
+
+The world rules and tile view are in `src/world.ceru`; text presentation and terminal input are in `src/chapter1.ceru`. This separation is intended to allow a later 2D renderer to use the same world state without duplicating the puzzle rules.
+
+```sh
+python3 scripts/check_chapter1.py --binary cerune
+```
+
+As with the existing interactive battle, Linux or WSL with a Linux-native Cerune binary is needed for a real terminal session; native Windows consoles are not supported by the current Cerune stdin contract.
