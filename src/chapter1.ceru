@@ -5,13 +5,12 @@ fn show_map(state: world::World) -> void {
     print("Map: @ you, L Lyuna, * star, B beacon, H house");
     mut y: i64 = 0;
     while y < 6 {
-        line: string = world::tile(state, 0, y)
-            + world::tile(state, 1, y)
-            + world::tile(state, 2, y)
-            + world::tile(state, 3, y)
-            + world::tile(state, 4, y)
-            + world::tile(state, 5, y)
-            + world::tile(state, 6, y);
+        mut line: string = "";
+        mut x: i64 = 0;
+        while x < 7 {
+            line = concat(line, world::tile(state, x, y));
+            x = x + 1;
+        }
         print(line);
         y = y + 1;
     }
