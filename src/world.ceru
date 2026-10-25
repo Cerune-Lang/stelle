@@ -1,0 +1,189 @@
+// The Chapter 1 world state and rules. This file never prints or reads input.
+// A future 2D front end can consume this state and the same tile projection.
+pub type World {
+    x: i64,
+    y: i64,
+    lantern: bool,
+    shard: bool,
+    bridge_restored: bool,
+    finished: bool,
+}
+
+pub enum Action {
+    North,
+    South,
+    West,
+    East,
+    Interact,
+}
+
+pub enum Event {
+    Moved,
+    Blocked,
+    Nothing,
+    MetLyuna,
+    AlreadyMet,
+    NeedLantern,
+    FoundShard,
+    AlreadyFound,
+    NeedShard,
+    BridgeRestored,
+    AlreadyRestored,
+    FoundDiary,
+    AlreadyFinished,
+}
+
+pub type Turn {
+    state: World,
+    event: Event,
+}
+
+pub fn start() -> World {
+    return World {
+        x: 1,
+        y: 1,
+        lantern: false,
+        shard: false,
+        bridge_restored: false,
+        finished: false,
+    };
+}
+
+fn outcome(state: World, event: Event) -> Turn {
+    return Turn { state: state, event: event };
+}
+
+// The tile grid is independent of terminal drawing and keyboard input.
+// Coordinates: 0..6 horizontally, 0..5 vertically.
+fn walkable(state: World, x: i64, y: i64) -> bool {
+    if x < 1 || x > 5 || y < 1 || y > 4 {
+        return false;
+    }
+    if y == 1 {
+        return x != 2;
+    }
+    if y == 2 {
+        return x == 1 || x == 3;
+    }
+    if y == 3 {
+        if x == 5 && !state.bridge_restored {
+            return false;
+        }
+        return true;
+    }
+    if y == 4 {
+        return x <= 3 || x == 5;
+    }
+    return false;
+}
+
+// The visible map is a projection of world state; '@' is the player.
+pub fn tile(state: World, x: i64, y: i64) -> string {
+    if x == state.x && y == state.y {
+        return "@";
+    }
+    if x == 2 && y == 1 {
+        return "L";
+    }
+    if x == 1 && y == 3 && !state.shard {
+        return "*";
+    }
+    if x == 4 && y == 3 {
+        if state.bridge_restored {
+            return "+";
+        }
+        return "B";
+    }
+    if x == 5 && y == 3 {
+        if state.bridge_restored {
+            return "=";
+        }
+        return "~";
+    }
+    if x == 5 && y == 4 {
+        return "H";
+    }
+    if walkable(state, x, y) {
+        return ".";
+    }
+    return "#";
+}
+
+fn interact(state: World) -> Turn {
+    // Lyuna is beside the starting tile; she gives the memory lantern.
+    if state.x == 1 && state.y == 1 {
+        if state.lantern {
+            return outcome(state, Event::AlreadyMet {});
+        }
+        return outcome(
+            World { ..state, lantern: true },
+            Event::MetLyuna {},
+        );
+    }
+    // The lost star can be retrieved only while carrying the lantern.
+    if state.x == 1 && state.y == 3 {
+        if state.shard {
+            return outcome(state, Event::AlreadyFound {});
+        }
+        if !state.lantern {
+            return outcome(state, Event::NeedLantern {});
+        }
+        return outcome(
+            World { ..state, shard: true },
+            Event::FoundShard {},
+        );
+    }
+    // The bridge is restored by placing the recovered star at the beacon.
+    if state.x == 4 && state.y == 3 {
+        if state.bridge_restored {
+            return outcome(state, Event::AlreadyRestored {});
+        }
+        if !state.shard {
+            return outcome(state, Event::NeedShard {});
+        }
+        return outcome(
+            World { ..state, bridge_restored: true },
+            Event::BridgeRestored {},
+        );
+    }
+    if state.x == 5 && state.y == 4 {
+        return outcome(
+            World { ..state, finished: true },
+            Event::FoundDiary {},
+        );
+    }
+    return outcome(state, Event::Nothing {});
+}
+
+// A pure world transition, separate from dialogue, input and rendering.
+pub fn advance(state: World, action: Action) -> Turn {
+    if state.finished {
+        return outcome(state, Event::AlreadyFinished {});
+    }
+    mut next_x: i64 = state.x;
+    mut next_y: i64 = state.y;
+    match action {
+        Action::North {} => {
+            next_y = next_y - 1;
+        },
+        Action::South {} => {
+            next_y = next_y + 1;
+        },
+        Action::West {} => {
+            next_x = next_x - 1;
+        },
+        Action::East {} => {
+            next_x = next_x + 1;
+        },
+        Action::Interact {} => {
+            return interact(state);
+        },
+    }
+    if !walkable(state, next_x, next_y) {
+        return outcome(state, Event::Blocked {});
+    }
+    return outcome(
+        World { ..state, x: next_x, y: next_y },
+        Event::Moved {},
+    );
+}
