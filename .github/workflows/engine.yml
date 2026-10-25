@@ -31,3 +31,7 @@ jobs:
         run: python3 stelle/scripts/check_engine.py --binary cerune/target/debug/cerune
       - name: Check CLI demo
         run: cerune/target/debug/cerune check stelle/src/main.ceru
+      - name: Test interactive Stelle through piped stdin
+        run: python3 stelle/scripts/check_interactive.py --binary cerune/target/debug/cerune
+      - name: Check scripted demo
+        run: cerune/target/debug/cerune check stelle/src/demo.ceru
