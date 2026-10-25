@@ -1,0 +1,47 @@
+import "world.ceru" as world;
+
+mut s: world::World = world::start();
+print(s.x == 1);
+print(s.y == 1);
+print(!s.lantern);
+print(!s.shard);
+print(!s.bridge_restored);
+print(!s.finished);
+
+blocked: world::Turn = world::advance(s, world::Action::East {});
+print(blocked.state.x == 1);
+print(blocked.state.y == 1);
+
+mut unlit: world::Turn = world::advance(s, world::Action::South {});
+unlit = world::advance(unlit.state, world::Action::South {});
+unlit = world::advance(unlit.state, world::Action::Interact {});
+print(!unlit.state.shard);
+
+lit: world::Turn = world::advance(s, world::Action::Interact {});
+print(lit.state.lantern);
+
+mut south: world::Turn = world::advance(lit.state, world::Action::South {});
+south = world::advance(south.state, world::Action::South {});
+shard: world::Turn = world::advance(south.state, world::Action::Interact {});
+print(shard.state.shard);
+
+mut east: world::Turn = world::advance(shard.state, world::Action::East {});
+east = world::advance(east.state, world::Action::East {});
+east = world::advance(east.state, world::Action::East {});
+print(east.state.x == 4);
+no_bridge: world::Turn = world::advance(east.state, world::Action::East {});
+print(no_bridge.state.x == 4);
+print(!no_bridge.state.bridge_restored);
+
+restored: world::Turn = world::advance(east.state, world::Action::Interact {});
+print(restored.state.bridge_restored);
+mut crossed: world::Turn = world::advance(restored.state, world::Action::East {});
+crossed = world::advance(crossed.state, world::Action::South {});
+print(crossed.state.x == 5);
+print(crossed.state.y == 4);
+ending: world::Turn = world::advance(crossed.state, world::Action::Interact {});
+print(ending.state.finished);
+after: world::Turn = world::advance(ending.state, world::Action::North {});
+print(after.state.y == 4);
+print(world::tile(ending.state, 4, 3) == "+");
+print(world::tile(ending.state, 5, 3) == "=");

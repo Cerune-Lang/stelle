@@ -1,0 +1,113 @@
+import "world.ceru" as world;
+import "std:io" as io;
+
+fn show_map(state: world::World) -> void {
+    print("Map: @ you, L Lyuna, * star, B beacon, H house");
+    mut y: i64 = 0;
+    while y < 6 {
+        mut line: string = "";
+        mut x: i64 = 0;
+        while x < 7 {
+            line = concat(line, world::tile(state, x, y));
+            x = x + 1;
+        }
+        print(line);
+        y = y + 1;
+    }
+}
+
+fn narrate(event: world::Event) -> void {
+    match event {
+        world::Event::Moved {} => {},
+        world::Event::Blocked {} => { print("The path is blocked."); },
+        world::Event::Nothing {} => { print("There is nothing to investigate."); },
+        world::Event::MetLyuna {} => {
+            print("Lyuna: Yesterday there was a bridge here. Do you remember?");
+            print("No one else remembers. Take this star lantern.");
+            print("The forgotten path leads into the woods.");
+        },
+        world::Event::AlreadyMet {} => { print("Lyuna: Follow the light. I will remember you."); },
+        world::Event::NeedLantern {} => { print("A cold light flickers. Speak to Lyuna first."); },
+        world::Event::FoundShard {} => {
+            print("The lantern reveals a star shard hidden in the grass.");
+            print("A voice whispers: A promise remains beyond the river.");
+        },
+        world::Event::AlreadyFound {} => { print("The star shard is safe in your hands."); },
+        world::Event::NeedShard {} => { print("The beacon is silent. It needs a fallen star."); },
+        world::Event::BridgeRestored {} => {
+            print("The shard wakes the beacon. A forgotten bridge returns.");
+            print("Across the water, a house comes back into view.");
+        },
+        world::Event::AlreadyRestored {} => { print("The beacon still shines."); },
+        world::Event::FoundDiary {} => {
+            print("Inside the house lies an old diary.");
+            print("The first page carries your own name.");
+            print("Chapter 1 complete: The Village Without a Bridge.");
+        },
+        world::Event::AlreadyFinished {} => {},
+    }
+}
+
+fn main() -> void {
+    print("Stelle - Chapter 1: The Village Without a Bridge");
+    print("A star disappeared last night. Today, nobody remembers the bridge.");
+    print("Somebody is waiting for you at the edge of the village.");
+
+    mut state: world::World = world::start();
+    mut done: bool = false;
+    while !done {
+        show_map(state);
+        print("Move: w/a/s/d | e: investigate | q: quit");
+        print(">");
+        flush();
+        input: io::ReadLine = io::read_line(64);
+        match input {
+            io::ReadLine::Line { text: text } => {
+                mut valid: bool = true;
+                mut action: world::Action = world::Action::Interact {};
+                if text == "w\n" || text == "w\r\n" || text == "w" {
+                    action = world::Action::North {};
+                }
+                if text == "a\n" || text == "a\r\n" || text == "a" {
+                    action = world::Action::West {};
+                }
+                if text == "s\n" || text == "s\r\n" || text == "s" {
+                    action = world::Action::South {};
+                }
+                if text == "d\n" || text == "d\r\n" || text == "d" {
+                    action = world::Action::East {};
+                }
+                if text == "e\n" || text == "e\r\n" || text == "e" {
+                    action = world::Action::Interact {};
+                }
+                if text == "q\n" || text == "q\r\n" || text == "q" {
+                    print("The stars will wait for you.");
+                    done = true;
+                }
+                if text != "w\n" && text != "w\r\n" && text != "w"
+                    && text != "a\n" && text != "a\r\n" && text != "a"
+                    && text != "s\n" && text != "s\r\n" && text != "s"
+                    && text != "d\n" && text != "d\r\n" && text != "d"
+                    && text != "e\n" && text != "e\r\n" && text != "e"
+                    && text != "q\n" && text != "q\r\n" && text != "q" {
+                    valid = false;
+                }
+                if !valid {
+                    print("Unknown command. Use w/a/s/d/e/q.");
+                }
+                if valid && !done {
+                    turn: world::Turn = world::advance(state, action);
+                    state = turn.state;
+                    narrate(turn.event);
+                    if state.finished {
+                        done = true;
+                    }
+                }
+            },
+            io::ReadLine::End {} => {
+                print("Input ended.");
+                done = true;
+            },
+        }
+    }
+}
