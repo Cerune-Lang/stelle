@@ -12,7 +12,7 @@ blocked: world::Turn = world::advance(s, world::Action::East {});
 print(blocked.state.x == 1);
 print(blocked.state.y == 1);
 
-unlit: world::Turn = world::advance(s, world::Action::South {});
+mut unlit: world::Turn = world::advance(s, world::Action::South {});
 unlit = world::advance(unlit.state, world::Action::South {});
 unlit = world::advance(unlit.state, world::Action::Interact {});
 print(!unlit.state.shard);
@@ -20,12 +20,12 @@ print(!unlit.state.shard);
 lit: world::Turn = world::advance(s, world::Action::Interact {});
 print(lit.state.lantern);
 
-south: world::Turn = world::advance(lit.state, world::Action::South {});
+mut south: world::Turn = world::advance(lit.state, world::Action::South {});
 south = world::advance(south.state, world::Action::South {});
 shard: world::Turn = world::advance(south.state, world::Action::Interact {});
 print(shard.state.shard);
 
-east: world::Turn = world::advance(shard.state, world::Action::East {});
+mut east: world::Turn = world::advance(shard.state, world::Action::East {});
 east = world::advance(east.state, world::Action::East {});
 east = world::advance(east.state, world::Action::East {});
 print(east.state.x == 4);
@@ -35,7 +35,7 @@ print(!no_bridge.state.bridge_restored);
 
 restored: world::Turn = world::advance(east.state, world::Action::Interact {});
 print(restored.state.bridge_restored);
-crossed: world::Turn = world::advance(restored.state, world::Action::East {});
+mut crossed: world::Turn = world::advance(restored.state, world::Action::East {});
 crossed = world::advance(crossed.state, world::Action::South {});
 print(crossed.state.x == 5);
 print(crossed.state.y == 4);
