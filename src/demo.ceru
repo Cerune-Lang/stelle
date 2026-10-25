@@ -1,0 +1,39 @@
+import "battle.ceru" as battle;
+
+fn main() -> void {
+    print("Stelle");
+    print("A slime appears!");
+
+    mut state: battle::Battle = battle::start();
+    battle::show(state);
+
+    // Cerune has no interactive stdin primitive yet, so this tiny CLI scenario
+    // scripts the commands instead of duplicating the game in another language.
+    print("> attack");
+    state = battle::step(state, battle::Action::Attack {});
+    battle::show(state);
+
+    print("> heal");
+    state = battle::step(state, battle::Action::Heal {});
+    battle::show(state);
+
+    print("> attack");
+    state = battle::step(state, battle::Action::Attack {});
+    battle::show(state);
+
+    print("> attack");
+    state = battle::step(state, battle::Action::Attack {});
+    battle::show(state);
+
+    if state.slime_hp <= 0 {
+        print("You win!");
+    }
+
+    if state.hero_hp <= 0 {
+        print("Game over.");
+    }
+
+    if state.escaped {
+        print("You escaped.");
+    }
+}
