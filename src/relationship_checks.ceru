@@ -1,0 +1,97 @@
+import "relationship.ceru" as relation;
+
+fn outcome_number(outcome: relation::Outcome) -> i64 {
+    match outcome {
+        relation::Outcome::Inserted {} => { return 1; },
+        relation::Outcome::Updated {} => { return 2; },
+        relation::Outcome::Full {} => { return 3; },
+        relation::Outcome::Invalid {} => { return 4; },
+    }
+}
+
+fn missing(graph: relation::Graph, from_id: i64, to_id: i64) -> bool {
+    match relation::find(graph, from_id, to_id) {
+        relation::Lookup::Found { relation: _ } => { return false; },
+        relation::Lookup::Missing {} => { return true; },
+    }
+}
+
+fn trust_is(graph: relation::Graph, from_id: i64, to_id: i64, expected: i64) -> bool {
+    match relation::find(graph, from_id, to_id) {
+        relation::Lookup::Found { relation: value } => { return value.trust == expected; },
+        relation::Lookup::Missing {} => { return false; },
+    }
+}
+
+empty: relation::Graph = relation::empty();
+print(empty.length == 0);
+print(relation::capacity() == 8);
+print(missing(empty, 1, 2));
+print(missing(empty, -1, 2));
+
+forward: relation::Relationship = relation::Relationship {
+    from_id: 1, to_id: 2, trust: 60, affection: 20, tension: 10,
+};
+first: relation::Write = relation::upsert(empty, forward);
+one: relation::Graph = first.graph;
+print(outcome_number(first.outcome) == 1);
+print(one.length == 1);
+print(empty.length == 0);
+print(trust_is(one, 1, 2, 60));
+print(missing(one, 2, 1));
+
+reverse: relation::Relationship = relation::Relationship {
+    from_id: 2, to_id: 1, trust: 15, affection: 5, tension: 80,
+};
+second: relation::Write = relation::upsert(one, reverse);
+two: relation::Graph = second.graph;
+print(outcome_number(second.outcome) == 1);
+print(two.length == 2);
+print(trust_is(two, 2, 1, 15));
+print(trust_is(two, 1, 2, 60));
+
+revised: relation::Relationship = relation::Relationship { ..forward, trust: 95 };
+third: relation::Write = relation::upsert(two, revised);
+updated: relation::Graph = third.graph;
+print(outcome_number(third.outcome) == 2);
+print(updated.length == 2);
+print(trust_is(updated, 1, 2, 95));
+print(trust_is(two, 1, 2, 60));
+print(trust_is(updated, 2, 1, 15));
+
+self_edge: relation::Relationship = relation::Relationship { ..forward, to_id: 1 };
+bad_self: relation::Write = relation::upsert(updated, self_edge);
+print(outcome_number(bad_self.outcome) == 4);
+print(bad_self.graph.length == 2);
+
+bad_score: relation::Relationship = relation::Relationship { ..forward, affection: 101 };
+bad_value: relation::Write = relation::upsert(updated, bad_score);
+print(outcome_number(bad_value.outcome) == 4);
+print(bad_value.graph.length == 2);
+
+bad_id: relation::Relationship = relation::Relationship { ..forward, from_id: -1 };
+bad_negative: relation::Write = relation::upsert(updated, bad_id);
+print(outcome_number(bad_negative.outcome) == 4);
+print(missing(bad_negative.graph, -1, 2));
+
+mut filled: relation::Graph = updated;
+for (mut index: i64 = 0; index < 6; index = index + 1) {
+    candidate: relation::Relationship = relation::Relationship {
+        from_id: 1, to_id: 10 + index, trust: 0, affection: 0, tension: 0,
+    };
+    next: relation::Write = relation::upsert(filled, candidate);
+    filled = next.graph;
+}
+print(filled.length == 8);
+overflow: relation::Relationship = relation::Relationship {
+    from_id: 1, to_id: 99, trust: 0, affection: 0, tension: 0,
+};
+full: relation::Write = relation::upsert(filled, overflow);
+print(outcome_number(full.outcome) == 3);
+print(full.graph.length == 8);
+print(missing(full.graph, 1, 99));
+print(trust_is(full.graph, 1, 2, 95));
+
+invalid_length: relation::Graph = relation::Graph { ..empty, length: -1 };
+print(outcome_number(relation::upsert(invalid_length, forward).outcome) == 4);
+print(missing(invalid_length, 1, 2));
