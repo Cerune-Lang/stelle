@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stelle — 橋のない村</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/game.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><h1>Stelle <span>— 橋のない村</span></h1><p>第1章・2D プレビュー</p></header>
+    <div class="layout">
+      <section class="scene" aria-label="ゲーム画面">
+        <canvas id="map" width="560" height="480" aria-label="村のマップ" role="img"></canvas>
+        <p class="hint">矢印キー / WASD で移動 · E / Space で調べる · R で最初から</p>
+      </section>
+      <aside>
+        <h2>村の記録</h2>
+        <p id="story" aria-live="polite">読み込み中…</p>
+        <p id="progress">星のランタンを探そう。</p>
+        <div class="controls">
+          <button data-key="w" aria-label="上に移動">↑</button>
+          <div><button data-key="a" aria-label="左に移動">←</button><button data-key="s" aria-label="下に移動">↓</button><button data-key="d" aria-label="右に移動">→</button></div>
+          <button class="interact" data-key="e">調べる / 話す</button>
+          <button class="reset" data-key="r">最初から</button>
+        </div>
+      </aside>
+    </div>
+    <footer>ゲーム進行: Cerune · 描画と操作: ブラウザ · ローカル実行</footer>
+  </main>
+</body>
+</html>
