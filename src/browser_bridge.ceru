@@ -1,0 +1,97 @@
+import "world.ceru" as world;
+import "std:io" as io;
+
+// Stable line protocol for the local 2D browser UI.
+// This adapter never calculates movement, collisions, items or progression.
+fn event_name(event: world::Event) -> string {
+    mut name: string = "nothing";
+    match event {
+        world::Event::Moved {} => { name = "moved"; },
+        world::Event::Blocked {} => { name = "blocked"; },
+        world::Event::Nothing {} => { name = "nothing"; },
+        world::Event::MetLyuna {} => { name = "met_lyuna"; },
+        world::Event::AlreadyMet {} => { name = "already_met"; },
+        world::Event::NeedLantern {} => { name = "need_lantern"; },
+        world::Event::FoundShard {} => { name = "found_shard"; },
+        world::Event::AlreadyFound {} => { name = "already_found"; },
+        world::Event::NeedShard {} => { name = "need_shard"; },
+        world::Event::BridgeRestored {} => { name = "bridge_restored"; },
+        world::Event::AlreadyRestored {} => { name = "already_restored"; },
+        world::Event::FoundDiary {} => { name = "found_diary"; },
+        world::Event::AlreadyFinished {} => { name = "already_finished"; },
+    }
+    return name;
+}
+
+fn show(state: world::World, event: string) -> void {
+    print("STELLE/1");
+    print(event);
+    print(state.finished);
+    mut y: i64 = 0;
+    while y < 6 {
+        mut row: string = "";
+        mut x: i64 = 0;
+        while x < 7 {
+            row = concat(row, world::tile(state, x, y));
+            x = x + 1;
+        }
+        print(row);
+        y = y + 1;
+    }
+    print("END");
+    flush();
+}
+
+fn main() -> void {
+    mut state: world::World = world::start();
+    show(state, "start");
+    while true {
+        input: io::ReadLine = io::read_line(16);
+        match input {
+            io::ReadLine::End {} => { return; },
+            io::ReadLine::Line { text: text } => {
+                mut valid: bool = true;
+                mut reset: bool = false;
+                mut action: world::Action = world::Action::Interact {};
+                if text == "w\n" || text == "w\r\n" || text == "w" {
+                    action = world::Action::North {};
+                }
+                if text == "s\n" || text == "s\r\n" || text == "s" {
+                    action = world::Action::South {};
+                }
+                if text == "a\n" || text == "a\r\n" || text == "a" {
+                    action = world::Action::West {};
+                }
+                if text == "d\n" || text == "d\r\n" || text == "d" {
+                    action = world::Action::East {};
+                }
+                if text == "e\n" || text == "e\r\n" || text == "e" {
+                    action = world::Action::Interact {};
+                }
+                if text == "r\n" || text == "r\r\n" || text == "r" {
+                    reset = true;
+                }
+                if text != "w\n" && text != "w\r\n" && text != "w"
+                    && text != "s\n" && text != "s\r\n" && text != "s"
+                    && text != "a\n" && text != "a\r\n" && text != "a"
+                    && text != "d\n" && text != "d\r\n" && text != "d"
+                    && text != "e\n" && text != "e\r\n" && text != "e"
+                    && text != "r\n" && text != "r\r\n" && text != "r" {
+                    valid = false;
+                }
+                if reset {
+                    state = world::start();
+                    show(state, "start");
+                }
+                if valid && !reset {
+                    turn: world::Turn = world::advance(state, action);
+                    state = turn.state;
+                    show(state, event_name(turn.event));
+                }
+                if !valid {
+                    show(state, "invalid");
+                }
+            },
+        }
+    }
+}
