@@ -211,7 +211,7 @@ function props(rows) {
     const c = rows[y][x], cx = (x + 0.5) * TILE, cy = (y + 0.5) * TILE;
     if (c === "#") {
       tree(cx + (random2(x, y) - 0.5) * 16, cy + (random2(y, x) - 0.5) * 12, y * 7 + x);
-    } else if (c === "L") character(cx, cy + 5, "#985f84", "#ad7d58");
+    } else if (c === "L") drawSprite("lyuna", cx, cy + 8, "down", false);
     else if (c === "*") shard(cx, cy);
     else if (c === "B" || c === "+") beacon(cx, cy, c === "+");
     else if (c === "H") cottage(cx, cy);
@@ -220,6 +220,41 @@ function props(rows) {
 }
 function hero(x, y) {
   character(x, y, "#345f99", "#6a4d3c");
+}
+
+
+// Original bundled 4x4 frame sheets. SVG is local-only and cannot affect game rules.
+const sprites = {hero: new Image(), lyuna: new Image()};
+const ready = {hero: false, lyuna: false};
+for (const name of Object.keys(sprites)) {
+  sprites[name].addEventListener("load", () => {
+    ready[name] = true;
+    draw();
+  });
+  sprites[name].addEventListener("error", () => {
+    ready[name] = false; // Existing Canvas characters remain as fallback.
+    draw();
+  });
+  sprites[name].src = "/assets/" + name + ".svg";
+}
+let facing = "down";
+let stride = 0;
+let lastMove = 0;
+let previousX = null;
+let previousY = null;
+const facingRows = {down: 0, left: 1, right: 2, up: 3};
+function drawSprite(name, x, y, direction, walking) {
+  if (!ready[name]) {
+    if (name === "hero") hero(x, y);
+    else character(x, y, "#985f84", "#ad7d58");
+    return;
+  }
+  const frame = walking ? Math.floor(stride) % 4 : 0;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(sprites[name], frame * 32, facingRows[direction] * 40, 32, 40,
+    Math.round(x - 18), Math.round(y - 27), 36, 45);
+  ctx.restore();
 }
 
 let current = null;
@@ -266,9 +301,20 @@ function draw() {
   forestFloor();
   paths(rows);
   props(rows);
-  hero(current.px / 1000 * TILE, current.py / 1000 * TILE);
+  drawSprite("hero", current.px / 1000 * TILE, current.py / 1000 * TILE, facing, performance.now() - lastMove < 180);
 }
 function render(state) {
+  if (previousX !== null && state.event === "moved") {
+    const dx = state.px - previousX, dy = state.py - previousY;
+    if (dx || dy) {
+      facing = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+      stride += 0.75;
+      lastMove = performance.now();
+    }
+  }
+  previousX = state.px;
+  previousY = state.py;
+  if (state.event === "start") { facing = "down"; stride = 0; lastMove = 0; }
   current = state;
   draw();
   const message = messages[state.event] ?? "";
@@ -367,6 +413,14 @@ document.querySelector("#show-controls").addEventListener("change", event => {
 document.querySelectorAll("button[data-key]").forEach(button =>
   button.addEventListener("click", () => act(button.dataset.key)));
 window.addEventListener("resize", draw);
+// Keep walking frames lively between replies from the local Cerune process.
+let lastFrame = -1;
+window.setInterval(() => {
+  if (current && performance.now() - lastMove < 180) {
+    const frame = Math.floor(stride + (performance.now() - lastMove) / 90) % 4;
+    if (frame !== lastFrame) { lastFrame = frame; draw(); }
+  } else if (lastFrame !== -1) { lastFrame = -1; draw(); }
+}, 45);
 fetch("/api/state")
   .then(response => { if (!response.ok) throw Error("HTTP " + response.status); return response.json(); })
   .then(render)
