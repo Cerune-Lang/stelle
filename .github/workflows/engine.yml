@@ -37,3 +37,5 @@ jobs:
         run: cerune/target/debug/cerune check stelle/src/demo.ceru
       - name: Test chapter one story and world state
         run: python3 stelle/scripts/check_chapter1.py --binary cerune/target/debug/cerune
+      - name: Test relationship graph
+        run: python3 stelle/scripts/check_relationship.py --binary cerune/target/debug/cerune
