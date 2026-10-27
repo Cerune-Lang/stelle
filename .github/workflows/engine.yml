@@ -45,3 +45,5 @@ jobs:
         run: python3 -c "import ast, pathlib; [ast.parse(p.read_text(encoding='utf-8'), filename=str(p)) for p in pathlib.Path('stelle/browser').glob('*.py')]"
       - name: Test browser bridge protocol
         run: python3 stelle/scripts/check_browser.py --binary cerune/target/debug/cerune
+      - name: Smoke-test browser HTTP server
+        run: python3 stelle/scripts/check_browser_http.py --binary cerune/target/debug/cerune
