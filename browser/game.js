@@ -72,6 +72,8 @@ let current = null;
 let busy = false;
 let menuOpen = false;
 let dismissTimer;
+const held = new Set();
+let movementTimer;
 const noteworthy = new Set([
   "start", "met_lyuna", "already_met", "need_lantern",
   "found_shard", "already_found", "need_shard", "bridge_restored",
@@ -79,6 +81,7 @@ const noteworthy = new Set([
 ]);
 function openMenu(open) {
   menuOpen = open;
+  if (open) clearMovement();
   menu.hidden = !open;
   scrim.hidden = !open;
   toggle.setAttribute("aria-expanded", String(open));
@@ -106,7 +109,15 @@ function draw() {
   const offsetY = (bounds.height - MAP_HEIGHT * factor) / 2;
   ctx.translate(offsetX, offsetY);
   ctx.scale(factor, factor);
-  for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) tile(x, y, current.tiles[y][x]);
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) {
+    const symbol = current.tiles[y][x];
+    tile(x, y, symbol === "@" ? "." : symbol);
+  }
+  // Cerune supplies the continuous position; drawing never decides collision.
+  ctx.save();
+  ctx.translate((current.px / 1000 - 0.5) * TILE, (current.py / 1000 - 0.5) * TILE);
+  tile(0, 0, "@");
+  ctx.restore();
 }
 function render(state) {
   current = state;
@@ -143,22 +154,49 @@ async function act(key) {
     busy = false;
   }
 }
-const mapping = {
-  ArrowUp:"w",ArrowDown:"s",ArrowLeft:"a",ArrowRight:"d",
-  " ":"e",e:"e",E:"e",r:"r",R:"r",
-  w:"w",a:"a",s:"s",d:"d",W:"w",A:"a",S:"s",D:"d"
+const movementKeys = {
+  ArrowUp:"w", ArrowDown:"s", ArrowLeft:"a", ArrowRight:"d",
+  w:"w", W:"w", a:"a", A:"a", s:"s", S:"s", d:"d", D:"d"
 };
+function movementKey() {
+  const x = Number(held.has("d")) - Number(held.has("a"));
+  const y = Number(held.has("s")) - Number(held.has("w"));
+  if (x === 0 && y === 0) return null;
+  if (x === -1 && y === -1) return "h";
+  if (x === 1 && y === -1) return "u";
+  if (x === -1 && y === 1) return "b";
+  if (x === 1 && y === 1) return "n";
+  return x === -1 ? "a" : x === 1 ? "d" : y === -1 ? "w" : "s";
+}
+function clearMovement() { held.clear(); }
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && menuOpen) { event.preventDefault(); openMenu(false); return; }
-  if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
+  if (event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
   if (event.target instanceof HTMLElement && event.target.closest("button,input")) return;
-  const key = mapping[event.key];
-  if (key) {
+  const direction = movementKeys[event.key];
+  if (direction) {
     event.preventDefault();
-    if (key === "r") restart();
-    else act(key);
+    held.add(direction);
+    return;
+  }
+  if (event.repeat) return;
+  if (event.key === " " || event.key.toLowerCase() === "e") {
+    event.preventDefault(); act("e");
+  } else if (event.key.toLowerCase() === "r") {
+    event.preventDefault(); restart();
   }
 });
+document.addEventListener("keyup", event => {
+  const direction = movementKeys[event.key];
+  if (direction) held.delete(direction);
+});
+window.addEventListener("blur", clearMovement);
+movementTimer = window.setInterval(() => {
+  if (!busy && !menuOpen) {
+    const key = movementKey();
+    if (key) act(key);
+  }
+}, 48);
 function restart() {
   if (menuOpen) openMenu(false);
   if (window.confirm("最初からやり直しますか？ 今の進行は失われます。")) act("r");
