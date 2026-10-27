@@ -342,6 +342,9 @@ function render(state) {
   previousY = state.py;
   if (state.event === "start") { facing = "down"; stride = 0; lastMove = 0; }
   current = state;
+  if (Number.isInteger(state.facing) && state.facing >= 0 && state.facing <= 3) {
+    facing = ["down", "left", "right", "up"][state.facing];
+  }
   draw();
   const message = messages[state.event] ?? "";
   if (state.event !== "moved" && message) {
