@@ -117,7 +117,7 @@ def handler_for(world):
                 if size <= 0 or size > 128:
                     raise ValueError()
                 body = json.loads(self.rfile.read(size))
-                if not isinstance(body, dict) or set(body) != {"key"} or body["key"] not in "wasder":
+                if not isinstance(body, dict) or set(body) != {"key"} or not isinstance(body["key"], str)\n                        or len(body["key"]) != 1 or body["key"] not in "wasder":
                     raise ValueError()
             except (ValueError, TypeError, json.JSONDecodeError):
                 self.respond(400, b"Invalid action")
