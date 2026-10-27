@@ -226,9 +226,6 @@ function hero(x, y) {
 // Original bundled 4x4 frame sheets. SVG is local-only and cannot affect game rules.
 const sprites = {hero: new Image(), lyuna: new Image()};
 const appearanceKey = "stelle.hero.appearance.v1";
-const scaleKey = "stelle.sprite.scale.v1";
-let spriteScale = {hero: 120, lyuna: 100};
-try { const data=JSON.parse(localStorage.getItem(scaleKey) || "{}"); for (const name of ["hero","lyuna"]) if(Number.isInteger(data[name]) && data[name]>=70 && data[name]<=160) spriteScale[name]=data[name]; } catch { /* storage is optional */ }
 function savedAppearance() {
   try { return localStorage.getItem(appearanceKey) === "girl" ? "girl" : "boy"; }
   catch { return "boy"; }
@@ -256,27 +253,33 @@ let lastMove = 0;
 let previousX = null;
 let previousY = null;
 const facingRows = {down: 0, left: 1, right: 2, up: 3};
+// All production PNG atlases: 384x384, 4x4 frames, 96x96 per frame.
+// Source artworks are normalized OFFLINE: same visible height & foot at (48,90).
+const SPRITE_FRAME = 96;
+const SPRITE_DRAW = 53;   // Shared in-world dimensions for Lyuna and both heroes.
+const SPRITE_FOOT_Y = 90;
+const SPRITE_FOOT_OFFSET = 15; // The character's feet appear just below world center.
 function drawSprite(name, x, y, direction, walking) {
   if (!ready[name]) {
     if (name === "hero") hero(x, y);
     else character(x, y, "#985f84", "#ad7d58");
     return;
   }
-  const frame = walking && name === "hero" ? Math.floor(stride) % 4 : 0;
+  const png = sprites[name].src.endsWith(".png");
+  const step = walking ? Math.floor(stride) % 4 : 0;
+  // Legacy hero SVG is used only if the PNG is missing; it is NOT a
+  // production sprite and uses its own old frame geometry.
+  const cellW = png ? SPRITE_FRAME : 64;
+  const cellH = png ? SPRITE_FRAME : 80;
+  const destH = SPRITE_DRAW;
+  const destW = png ? SPRITE_DRAW : 42;
+  const foot = png ? SPRITE_FOOT_Y : 70;
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  const isLyuna = name === "lyuna";
-  const heroPng = !isLyuna && sprites.hero.src.endsWith(".png");
-  const cellW = isLyuna || heroPng ? 96 : 64;
-  const cellH = isLyuna || heroPng ? 96 : 80;
-  const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
-  const naturalW = isLyuna || heroPng ? 53 : 42;
-  const naturalH = isLyuna || heroPng ? 53 : 53;
-  const factor = spriteScale[name] / 100;
-  const destW = naturalW * factor;
-  const destH = naturalH * factor;
-  ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
-    Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(sprites[name], step * cellW, facingRows[direction] * cellH, cellW, cellH,
+    Math.round(x - destW / 2),
+    Math.round(y + SPRITE_FOOT_OFFSET - destH * foot / cellH),
+    destW, destH);
   ctx.restore();
 }
 
@@ -446,18 +449,6 @@ document.querySelectorAll('input[name="hero-appearance"]').forEach(input => {
     draw();
   });
 });
-for (const name of ["hero","lyuna"]) {
-  const slider = document.querySelector("#" + name + "-scale");
-  const output = document.querySelector("#" + name + "-scale-value");
-  slider.value = String(spriteScale[name]);
-  output.textContent = spriteScale[name] + "%";
-  slider.addEventListener("input", () => {
-    spriteScale[name] = Number(slider.value);
-    output.textContent = slider.value + "%";
-    try { localStorage.setItem(scaleKey, JSON.stringify(spriteScale)); } catch { /* optional */ }
-    draw();
-  });
-}
 window.addEventListener("resize", draw);
 // Keep walking frames lively between replies from the local Cerune process.
 let lastFrame = -1;
