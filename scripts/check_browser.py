@@ -36,7 +36,7 @@ def main():
         ("blocked", "d" * 4, None),
         ("diagonal", "n", ["start", "moved"]),
         ("face_block", "aaaae", None),
-        ("turn_to_lyuna", "we", ["start", "blocked", "nothing"]),
+        ("turn_to_lyuna", "we", ["start", "moved", "nothing"]),
         ("finish", MOVES, None),
         ("restart", "er", ["start", "met_lyuna", "start"]),
         ("invalid", "z", ["start", "invalid"]),
