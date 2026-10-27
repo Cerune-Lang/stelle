@@ -50,6 +50,7 @@ def main():
         assert before["event"] == "start"
         assert before["tiles"][1][1] == "@"
         assert before["px"] == 1500 and before["py"] == 1500
+        assert before["facing"] == 2
         body = json.dumps({"key": "e"}).encode()
         req = request.Request(base + "/api/action", data=body,
                               headers={"Content-Type": "application/json"}, method="POST")

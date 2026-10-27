@@ -16,7 +16,7 @@ python browser/server.py --binary cerune --port 8765
 
 Open <http://127.0.0.1:8765/>. The 2D map **fills the browser viewport**. Use the **Menu** at the top right for controls and options rather than a permanent sidebar. Hold **arrows / WASD** for continuous eight-direction movement, **E / Space** to interact, and **R** to restart after confirmation. Dialogue appears over the bottom of the map and can be dismissed. The menu provides fullscreen mode and optional on-screen movement buttons. Stop the server with Ctrl+C.
 
-For now, interact with Lyuna on the starting tile. Presentation text is localized for the browser, but the story and progression rules are unchanged in `src/world.ceru`. The server is **for local use only**, not public hosting.
+To talk to Lyuna, face her from the adjacent tile and interact. The hero starts facing right, so E works immediately at the starting position. Direction changes even when movement is blocked. Presentation text is localized for the browser, but the story and progression rules are unchanged in `src/world.ceru`. The server is **for local use only**, not public hosting.
 
 ```sh
 python3 scripts/check_browser.py --binary cerune

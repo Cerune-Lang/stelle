@@ -37,21 +37,23 @@ class WorldProcess:
             if not raw:
                 raise RuntimeError("Cerune exited before completing its state frame")
             return raw.decode("utf-8").rstrip("\r\n")
-        if line() != "STELLE/2":
+        if line() != "STELLE/3":
             raise RuntimeError("Unsupported Cerune state protocol")
         event = line()
         finished = line()
         px = line()
         py = line()
+        facing = line()
         tiles = [line() for _ in range(HEIGHT)]
         if (event not in EVENTS or finished not in ("true", "false")
                 or not px.isdecimal() or not py.isdecimal()
+                or facing not in ("0", "1", "2", "3")
                 or not (0 <= int(px) <= 7000 and 0 <= int(py) <= 6000)
                 or any(len(row) != WIDTH or any(c not in "#.@L*B~+=H" for c in row)
                        for row in tiles)
                 or line() != "END"):
             raise RuntimeError("Invalid Cerune state frame")
-        return {"event": event, "finished": finished == "true", "tiles": tiles, "px": int(px), "py": int(py)}
+        return {"event": event, "finished": finished == "true", "tiles": tiles, "px": int(px), "py": int(py), "facing": int(facing)}
 
     def action(self, key):
         with self.lock:
