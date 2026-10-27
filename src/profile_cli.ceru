@@ -51,11 +51,12 @@ fn main() -> void {
             env::Argument::Value { text: text } => {
                 if text == "female" {
                     gender = profile::Gender::Female {};
-                } else if text == "male" {
+                }
+                if text == "male" {
                     gender = profile::Gender::Male {};
-                } else if text == "unspecified" || text == "" {
-                    gender = profile::Gender::Unspecified {};
-                } else {
+                }
+                if text != "female" && text != "male"
+                    && text != "unspecified" && text != "" {
                     print("Gender must be female, male, or unspecified.");
                     return;
                 }
