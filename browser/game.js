@@ -253,8 +253,8 @@ function drawSprite(name, x, y, direction, walking) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   const isLyuna = name === "lyuna";
-  const cellW = isLyuna ? 48 : 32;
-  const cellH = isLyuna ? 48 : 40;
+  const cellW = isLyuna ? 96 : 32;
+  const cellH = isLyuna ? 96 : 40;
   const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
   const destW = isLyuna ? 53 : 36;
   const destH = isLyuna ? 53 : 45;
