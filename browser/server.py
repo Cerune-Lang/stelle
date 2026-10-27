@@ -137,7 +137,8 @@ def main():
     parser.add_argument("--binary", default="cerune", help="Cerune binary path")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
-    world = WorldProcess(args.binary)
+    binary = str(Path(args.binary).resolve()) if Path(args.binary).is_file() else args.binary
+    world = WorldProcess(binary)
     try:
         with ThreadingHTTPServer(("127.0.0.1", args.port), handler_for(world)) as server:
             print(f"Stelle: http://127.0.0.1:{server.server_port}/", flush=True)
