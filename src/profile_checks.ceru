@@ -1,0 +1,105 @@
+import "profile.ceru" as profile;
+
+fn named(value: profile::Create, expected: string) -> bool {
+    match value {
+        profile::Create::Created { player: player } => {
+            return player.name == expected;
+        },
+        profile::Create::InvalidName {} => { return false; },
+        profile::Create::InvalidAge {} => { return false; },
+    }
+}
+
+fn is_age(value: profile::Create, expected: i64) -> bool {
+    match value {
+        profile::Create::Created { player: player } => {
+            match player.age {
+                profile::Age::Years { value: years } => { return years == expected; },
+                profile::Age::Unspecified {} => { return false; },
+            }
+        },
+        profile::Create::InvalidName {} => { return false; },
+        profile::Create::InvalidAge {} => { return false; },
+    }
+}
+
+fn age_unspecified(value: profile::Create) -> bool {
+    match value {
+        profile::Create::Created { player: player } => {
+            match player.age {
+                profile::Age::Years { value: _ } => { return false; },
+                profile::Age::Unspecified {} => { return true; },
+            }
+        },
+        profile::Create::InvalidName {} => { return false; },
+        profile::Create::InvalidAge {} => { return false; },
+    }
+}
+
+fn is_gender(value: profile::Create, expected: i64) -> bool {
+    match value {
+        profile::Create::Created { player: player } => {
+            match player.gender {
+                profile::Gender::Female {} => { return expected == 1; },
+                profile::Gender::Male {} => { return expected == 2; },
+                profile::Gender::Unspecified {} => { return expected == 3; },
+            }
+        },
+        profile::Create::InvalidName {} => { return false; },
+        profile::Create::InvalidAge {} => { return false; },
+    }
+}
+
+fn invalid_name(value: profile::Create) -> bool {
+    match value {
+        profile::Create::Created { player: _ } => { return false; },
+        profile::Create::InvalidName {} => { return true; },
+        profile::Create::InvalidAge {} => { return false; },
+    }
+}
+
+fn invalid_age(value: profile::Create) -> bool {
+    match value {
+        profile::Create::Created { player: _ } => { return false; },
+        profile::Create::InvalidName {} => { return false; },
+        profile::Create::InvalidAge {} => { return true; },
+    }
+}
+
+default: profile::Create = profile::create(
+    "", profile::Age::Unspecified {}, profile::Gender::Unspecified {},
+);
+print(profile::default_name() == "ステラ");
+print(named(default, "ステラ"));
+print(age_unspecified(default));
+print(is_gender(default, 3));
+
+female: profile::Create = profile::create(
+    "星音", profile::Age::Years { value: 20 }, profile::Gender::Female {},
+);
+print(named(female, "星音"));
+print(is_age(female, 20));
+print(is_gender(female, 1));
+
+male: profile::Create = profile::create(
+    "Arin", profile::Age::Years { value: 28 }, profile::Gender::Male {},
+);
+print(named(male, "Arin"));
+print(is_age(male, 28));
+print(is_gender(male, 2));
+
+long_lived: profile::Create = profile::create(
+    "旅人", profile::Age::Years { value: 1000 }, profile::Gender::Unspecified {},
+);
+print(is_age(long_lived, 1000));
+print(is_gender(long_lived, 3));
+
+print(invalid_age(profile::create("Arin", profile::Age::Years { value: 0 }, profile::Gender::Male {})));
+print(invalid_age(profile::create("Arin", profile::Age::Years { value: -1 }, profile::Gender::Male {})));
+print(invalid_name(profile::create(
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    profile::Age::Unspecified {}, profile::Gender::Unspecified {},
+)));
+print(named(profile::create(
+    "A", profile::Age::Unspecified {}, profile::Gender::Unspecified {},
+), "A"));
