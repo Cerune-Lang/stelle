@@ -1,0 +1,33 @@
+// Character creation data only. No backstory, job, romance, or personality is implied.
+// 'age' is the age at creation, until the world calendar is designed.
+pub enum Gender {
+    Female,
+    Male,
+    Unspecified,
+}
+
+pub type Player {
+    name: string,
+    age: i64,
+    gender: Gender,
+}
+
+pub enum Create {
+    Created { player: Player },
+    InvalidName,
+    InvalidAge,
+}
+
+// The length guard protects the eventual CLI/UI, not the world's lore.
+// A positive age has no arbitrary upper limit: longevity is a world-building decision.
+pub fn create(name: string, age: i64, gender: Gender) -> Create {
+    if byte_len(name) == 0 || byte_len(name) > 96 {
+        return Create::InvalidName {};
+    }
+    if age <= 0 {
+        return Create::InvalidAge {};
+    }
+    return Create::Created {
+        player: Player { name: name, age: age, gender: gender },
+    };
+}
