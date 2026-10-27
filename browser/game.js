@@ -235,7 +235,7 @@ for (const name of Object.keys(sprites)) {
     ready[name] = false; // Existing Canvas characters remain as fallback.
     draw();
   });
-  sprites[name].src = "/assets/" + name + ".svg";
+  sprites[name].src = name === "lyuna" ? "/assets/lyuna.png" : "/assets/hero.svg";
 }
 let facing = "down";
 let stride = 0;
@@ -249,11 +249,17 @@ function drawSprite(name, x, y, direction, walking) {
     else character(x, y, "#985f84", "#ad7d58");
     return;
   }
-  const frame = walking ? Math.floor(stride) % 4 : 0;
+  const frame = walking && name === "hero" ? Math.floor(stride) % 4 : 0;
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(sprites[name], frame * 32, facingRows[direction] * 40, 32, 40,
-    Math.round(x - 18), Math.round(y - 27), 36, 45);
+  const isLyuna = name === "lyuna";
+  const cellW = isLyuna ? 48 : 32;
+  const cellH = isLyuna ? 48 : 40;
+  const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
+  const destW = isLyuna ? 53 : 36;
+  const destH = isLyuna ? 53 : 45;
+  ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
+    Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
   ctx.restore();
 }
 
