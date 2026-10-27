@@ -19,8 +19,8 @@ def read_frame(stream):
     assert lines[0] == "STELLE/3", lines
     assert lines[-1] == "END", lines
     assert lines[2] in ("true", "false"), lines
-    assert len(lines[6:12]) == 6 and all(len(s) == 7 for s in lines[5:11]), lines
-    return lines[1], lines[2] == "true", lines[5:11], int(lines[3]), int(lines[4]), int(lines[5])
+    assert len(lines[6:12]) == 6 and all(len(s) == 7 for s in lines[6:12]), lines
+    return lines[1], lines[2] == "true", lines[6:12], int(lines[3]), int(lines[4]), int(lines[5])
 
 
 def main():
