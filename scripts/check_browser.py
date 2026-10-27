@@ -34,6 +34,7 @@ def main():
     for scenario, keys, expected in [
         ("exit", "", ["start"]),
         ("blocked", "d" * 4, None),
+        ("diagonal", "n", ["start", "moved"]),
         ("finish", MOVES, None),
         ("restart", "er", ["start", "met_lyuna", "start"]),
         ("invalid", "z", ["start", "invalid"]),
@@ -48,6 +49,9 @@ def main():
                 events.append(read_frame(proc.stdout))
             if expected is not None:
                 assert [e[0] for e in events] == expected, (scenario, events)
+            if scenario == "diagonal":
+                assert events[-1][3] > events[0][3], events
+                assert events[-1][4] > events[0][4], events
             if scenario == "blocked":
                 assert events[-1][0] == "blocked" and events[-1][3] < 2000, events[-1]
             assert events[0][2][1][1] == "@", events[0]
@@ -64,7 +68,7 @@ def main():
             if proc.poll() is None:
                 proc.kill()
                 proc.wait()
-    print("Browser bridge scenarios: 5 passed")
+    print("Browser bridge scenarios: 6 passed")
 
 
 if __name__ == "__main__":
