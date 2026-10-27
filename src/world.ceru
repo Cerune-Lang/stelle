@@ -187,3 +187,69 @@ pub fn advance(state: World, action: Action) -> Turn {
         Event::Moved {},
     );
 }
+
+// Browser movement coordinates use 1000 units per original world tile.
+// The existing CLI grid rules and scenarios remain unchanged.
+pub type FreeWorld {
+    grid: World,
+    px: i64,
+    py: i64,
+}
+
+pub type FreeTurn {
+    state: FreeWorld,
+    event: Event,
+}
+
+pub fn start_free() -> FreeWorld {
+    return FreeWorld { grid: start(), px: 1500, py: 1500 };
+}
+
+// The player has a collision radius of 180 units. Check all four corners
+// against the same walkable() rules used by the original world transition.
+fn fits_free(grid: World, x: i64, y: i64) -> bool {
+    if x < 180 || y < 180 || x > 6820 || y > 5820 {
+        return false;
+    }
+    return walkable(grid, (x - 180) / 1000, (y - 180) / 1000)
+        && walkable(grid, (x + 180) / 1000, (y - 180) / 1000)
+        && walkable(grid, (x - 180) / 1000, (y + 180) / 1000)
+        && walkable(grid, (x + 180) / 1000, (y + 180) / 1000);
+}
+
+// A direction is -1, 0 or +1 per axis. Smaller diagonal steps
+// preserve approximately equal movement speed in all eight directions.
+// Axis-separated collision allows sliding along walls without passing through.
+pub fn move_free(state: FreeWorld, dx: i64, dy: i64) -> FreeTurn {
+    if state.grid.finished {
+        return FreeTurn { state: state, event: Event::AlreadyFinished {} };
+    }
+    if dx < -1 || dx > 1 || dy < -1 || dy > 1 || (dx == 0 && dy == 0) {
+        return FreeTurn { state: state, event: Event::Blocked {} };
+    }
+    mut speed: i64 = 105;
+    if dx != 0 && dy != 0 {
+        speed = 74;
+    }
+    mut x: i64 = state.px;
+    mut y: i64 = state.py;
+    if dx != 0 && fits_free(state.grid, x + dx * speed, y) {
+        x = x + dx * speed;
+    }
+    if dy != 0 && fits_free(state.grid, x, y + dy * speed) {
+        y = y + dy * speed;
+    }
+    if x == state.px && y == state.py {
+        return FreeTurn { state: state, event: Event::Blocked {} };
+    }
+    grid: World = World { ..state.grid, x: x / 1000, y: y / 1000 };
+    next: FreeWorld = FreeWorld { grid: grid, px: x, py: y };
+    return FreeTurn { state: next, event: Event::Moved {} };
+}
+
+// Reuse exactly the original Chapter 1 interactions and progression.
+pub fn interact_free(state: FreeWorld) -> FreeTurn {
+    turn: Turn = advance(state.grid, Action::Interact {});
+    next: FreeWorld = FreeWorld { ..state, grid: turn.state };
+    return FreeTurn { state: next, event: turn.event };
+}

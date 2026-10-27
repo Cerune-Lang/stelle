@@ -7,8 +7,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "src" / "browser_bridge.ceru"
-MOVES = "essedddedse"
-FRAME_LINES = 10  # protocol + event + finished + six tiles + END
+MOVES = "e" + "s" * 20 + "e" + "d" * 30 + "e" + "d" * 10 + "s" * 10 + "e"
+FRAME_LINES = 12  # protocol + event + finished + px + py + six tiles + END
 
 
 def read_frame(stream):
@@ -16,11 +16,11 @@ def read_frame(stream):
     if any(not line for line in raw):
         raise AssertionError(f"incomplete frame: {raw!r}")
     lines = [line.decode("utf-8").rstrip("\r\n") for line in raw]
-    assert lines[0] == "STELLE/1", lines
+    assert lines[0] == "STELLE/2", lines
     assert lines[-1] == "END", lines
     assert lines[2] in ("true", "false"), lines
-    assert len(lines[3:9]) == 6 and all(len(s) == 7 for s in lines[3:9]), lines
-    return lines[1], lines[2] == "true", lines[3:9]
+    assert len(lines[5:11]) == 6 and all(len(s) == 7 for s in lines[5:11]), lines
+    return lines[1], lines[2] == "true", lines[5:11], int(lines[3]), int(lines[4])
 
 
 def main():
@@ -33,8 +33,9 @@ def main():
         raise AssertionError(checked.stderr)
     for scenario, keys, expected in [
         ("exit", "", ["start"]),
-        ("blocked", "d", ["start", "blocked"]),
-        ("finish", MOVES, ["start", "met_lyuna", "moved", "moved", "found_shard", "moved", "moved", "moved", "bridge_restored", "moved", "moved", "found_diary"]),
+        ("blocked", "d" * 4, None),
+        ("diagonal", "n", ["start", "moved"]),
+        ("finish", MOVES, None),
         ("restart", "er", ["start", "met_lyuna", "start"]),
         ("invalid", "z", ["start", "invalid"]),
     ]:
@@ -46,9 +47,16 @@ def main():
                 proc.stdin.write((key + "\n").encode())
                 proc.stdin.flush()
                 events.append(read_frame(proc.stdout))
-            assert [e[0] for e in events] == expected, (scenario, events)
+            if expected is not None:
+                assert [e[0] for e in events] == expected, (scenario, events)
+            if scenario == "diagonal":
+                assert events[-1][3] > events[0][3], events
+                assert events[-1][4] > events[0][4], events
+            if scenario == "blocked":
+                assert events[-1][0] == "blocked" and events[-1][3] < 2000, events[-1]
             assert events[0][2][1][1] == "@", events[0]
             if scenario == "finish":
+                assert any(e[0] == "found_diary" for e in events), events[-12:]
                 assert events[-1][1], events[-1]
                 assert "=" in "".join(events[-1][2]), events[-1]
             if scenario == "restart":
@@ -60,7 +68,7 @@ def main():
             if proc.poll() is None:
                 proc.kill()
                 proc.wait()
-    print("Browser bridge scenarios: 5 passed")
+    print("Browser bridge scenarios: 6 passed")
 
 
 if __name__ == "__main__":

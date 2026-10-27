@@ -32,46 +32,202 @@ const messages = {
   already_finished: "第1章はクリア済み。",
   invalid: "操作を読み取れなかった。"
 };
-function tile(x, y, c) {
-  const X = x*TILE, Y = y*TILE;
-  ctx.fillStyle = c === "#" ? "#293e3d" : c === "~" ? "#357f9e" : "#6c9168";
-  ctx.fillRect(X,Y,TILE,TILE);
-  ctx.strokeStyle = "#ffffff12";
-  ctx.strokeRect(X+.5,Y+.5,TILE-1,TILE-1);
-  if (c==="#") {
-    ctx.fillStyle="#314e49"; ctx.fillRect(X+13,Y+17,54,53);
-    ctx.fillStyle="#57816a"; ctx.beginPath();ctx.arc(X+40,Y+24,29,0,Math.PI*2);ctx.fill();
-  } else if(c==="~") {
-    ctx.fillStyle="#8cc7d1";ctx.fillRect(X+10,Y+23,36,3);ctx.fillRect(X+32,Y+52,39,3);
-  } else if(c==="=") {
-    ctx.fillStyle="#4e91a7";ctx.fillRect(X,Y,TILE,TILE);
-    ctx.fillStyle="#a77e4e";for(let i=0;i<4;i++)ctx.fillRect(X+i*20+1,Y+9,16,62);
-  } else if(c==="B"||c==="+"){
-    ctx.fillStyle="#986d3a";ctx.fillRect(X+35,Y+18,12,48);
-    ctx.fillStyle=c==="+"?"#ffdf8b":"#829eab";
-    ctx.beginPath();ctx.arc(X+41,Y+20,12,0,Math.PI*2);ctx.fill();
-  } else if(c==="H"){
-    ctx.fillStyle="#d2b382";ctx.fillRect(X+13,Y+25,55,45);
-    ctx.fillStyle="#995649";ctx.beginPath();ctx.moveTo(X+7,Y+28);ctx.lineTo(X+40,Y+2);ctx.lineTo(X+74,Y+28);ctx.fill();
-    ctx.fillStyle="#5a3d31";ctx.fillRect(X+34,Y+43,14,27);
-  } else if(c==="L"){
-    ctx.fillStyle="#ffdb91";ctx.beginPath();ctx.arc(X+40,Y+26,12,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#945c91";ctx.fillRect(X+27,Y+39,27,25);
-  } else if(c==="*"){
-    ctx.fillStyle="#f8e3a2";ctx.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4-Math.PI/2,r=i%2?10:22;const px=X+40+Math.cos(a)*r,py=Y+39+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py)}ctx.closePath();ctx.fill();
-  } else if(c==="@"){
-    ctx.fillStyle="#f1ce96";ctx.beginPath();ctx.arc(X+40,Y+25,12,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle="#365b92";ctx.fillRect(X+27,Y+38,26,29);
-    ctx.fillStyle="#f9ebd0";ctx.fillRect(X+25,Y+66,10,8);ctx.fillRect(X+45,Y+66,10,8);
-  } else {
-    ctx.fillStyle="#92b27d";ctx.fillRect(X+19,Y+15,3,9);ctx.fillRect(X+60,Y+52,3,10);
+// The Cerune map is only semantic data. All artwork below is presentation.
+const SCENE_W = MAP_WIDTH, SCENE_H = MAP_HEIGHT;
+const palette = {
+  moss: "#294d43", grass: "#3e6d51", path: "#ac9d78", pathEdge: "#777956",
+  treeShadow: "#163f3a", leaf: "#386f54", leafLight: "#60966c",
+  gold: "#ffe0a0", water: "#377b89"
+};
+function random2(x, y, salt = 0) {
+  let n = (Math.imul(x + 31, 374761393) + Math.imul(y + 19, 668265263) +
+    Math.imul(salt + 7, 1442695041)) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+function disk(x, y, r, color, ry = r) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+function stroke(x1, y1, x2, y2, width, color) {
+  ctx.strokeStyle = color;
+  ctx.lineCap = "round";
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+function routeTile(c) {
+  return c !== "#" && c !== "~" && c !== "=";
+}
+function forestFloor() {
+  const ground = ctx.createLinearGradient(0, 0, SCENE_W, SCENE_H);
+  ground.addColorStop(0, "#426b55");
+  ground.addColorStop(0.58, "#385b4e");
+  ground.addColorStop(1, "#264c48");
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, 0, SCENE_W, SCENE_H);
+  // Seeded details do not jump between frames.
+  for (let i = 0; i < 540; i++) {
+    const x = random2(i, 1) * SCENE_W;
+    const y = random2(i, 2) * SCENE_H;
+    const r = 2 + random2(i, 3) * 9;
+    disk(x, y, r, i % 4 === 0 ? "#60836045" : "#1f51454d", r * 0.56);
+    if (i % 6 === 0) {
+      stroke(x - 2, y + 2, x - 4, y - 4, 1, "#91ad7b");
+      stroke(x, y + 2, x + 3, y - 5, 1, "#91ad7b");
+    }
   }
+}
+function paths(rows) {
+  // Rounded strokes connect adjacent traversable cells without drawing grid squares.
+  const draw = (width, color) => {
+    for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
+      if (!routeTile(rows[y][x])) continue;
+      const cx = (x + 0.5) * TILE, cy = (y + 0.5) * TILE;
+      disk(cx, cy, width * 0.47, color);
+      if (x + 1 < rows[y].length && routeTile(rows[y][x + 1])) {
+        stroke(cx, cy, cx + TILE, cy, width, color);
+      }
+      if (y + 1 < rows.length && routeTile(rows[y + 1][x])) {
+        stroke(cx, cy, cx, cy + TILE, width, color);
+      }
+    }
+  };
+  draw(67, palette.pathEdge);
+  draw(55, palette.path);
+  // Dirt flecks and cobbles on walkable ground.
+  for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
+    if (!routeTile(rows[y][x])) continue;
+    for (let i = 0; i < 9; i++) {
+      const px = (x + 0.5) * TILE + (random2(x * 19 + i, y, 4) - 0.5) * 45;
+      const py = (y + 0.5) * TILE + (random2(x, y * 31 + i, 5) - 0.5) * 45;
+      disk(px, py, 1 + random2(i, x + y, 7) * 2, i % 2 ? "#d0be925c" : "#746c5860", 1.4);
+    }
+  }
+}
+function tree(x, y, seed) {
+  disk(x + 2, y + 17, 31, "#132d304e", 14);
+  ctx.fillStyle = "#614f3a";
+  ctx.fillRect(x - 5, y - 1, 10, 28);
+  disk(x - 16, y - 7, 22, "#255747");
+  disk(x + 17, y - 8, 25, "#2a6049");
+  disk(x, y - 22, 29, seed % 3 ? palette.leaf : "#326551");
+  disk(x - 9, y - 29, 13, palette.leafLight, 10);
+  disk(x + 12, y - 18, 12, "#4a8263", 10);
+  for (let k = 0; k < 3; k++) {
+    disk(x - 17 + random2(seed, k) * 32, y - 32 + random2(k, seed) * 18,
+      2, "#a7c78c");
+  }
+}
+function river(x, y, bridged) {
+  ctx.fillStyle = "#254d54";
+  ctx.beginPath();
+  ctx.ellipse(x, y, 36, 42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  disk(x, y, 30, palette.water, 36);
+  for (let i = 0; i < 4; i++) {
+    const cy = y - 23 + i * 15;
+    stroke(x - 17 + i % 2 * 8, cy, x + 12 + i % 2 * 7, cy - 2, 2, "#aad2ce8b");
+  }
+  if (bridged) {
+    ctx.fillStyle = "#5d4235";
+    ctx.fillRect(x - 36, y - 25, 72, 50);
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = i % 2 ? "#c69b60" : "#aa7c4a";
+      ctx.fillRect(x - 34 + i * 14, y - 23, 12, 46);
+    }
+    stroke(x - 36, y - 27, x + 36, y - 27, 5, "#e1b778");
+    stroke(x - 36, y + 27, x + 36, y + 27, 5, "#e1b778");
+  }
+}
+function beacon(x, y, lit) {
+  disk(x + 3, y + 18, 19, "#1b2f2a77", 10);
+  ctx.fillStyle = "#5a6262";
+  ctx.fillRect(x - 8, y - 4, 16, 27);
+  ctx.fillStyle = "#9d9d8d";
+  ctx.fillRect(x - 13, y + 13, 26, 10);
+  disk(x, y - 16, lit ? 19 : 11, lit ? "#f8d47b55" : "#9badad55");
+  disk(x, y - 17, lit ? 8 : 6, lit ? "#ffeb9f" : "#85979a");
+}
+function cottage(x, y) {
+  disk(x, y + 27, 32, "#1f343555", 14);
+  ctx.fillStyle = "#d5b58a";
+  ctx.fillRect(x - 25, y - 14, 50, 47);
+  ctx.fillStyle = "#a65b50";
+  ctx.beginPath();
+  ctx.moveTo(x - 33, y - 13);
+  ctx.lineTo(x, y - 41);
+  ctx.lineTo(x + 33, y - 13);
+  ctx.closePath();
+  ctx.fill();
+  stroke(x - 34, y - 14, x + 34, y - 14, 4, "#6f4240");
+  ctx.fillStyle = "#513c39";
+  ctx.fillRect(x - 7, y + 8, 14, 25);
+  ctx.fillStyle = "#f5db9b";
+  ctx.fillRect(x - 21, y - 3, 10, 12);
+}
+function character(x, y, cloak, hair) {
+  disk(x + 2, y + 18, 15, "#0d252856", 7);
+  // These shapes sit on top of terrain; never paint a background square.
+  ctx.fillStyle = "#483b3c";
+  ctx.fillRect(x - 8, y + 9, 6, 11);
+  ctx.fillRect(x + 3, y + 9, 6, 11);
+  ctx.fillStyle = cloak;
+  ctx.beginPath();
+  ctx.moveTo(x - 12, y - 3);
+  ctx.lineTo(x + 12, y - 3);
+  ctx.lineTo(x + 14, y + 12);
+  ctx.lineTo(x - 14, y + 12);
+  ctx.closePath();
+  ctx.fill();
+  disk(x, y - 11, 10, "#f0c99b");
+  disk(x, y - 17, 10, hair, 6);
+  ctx.fillStyle = "#372d38";
+  ctx.fillRect(x - 5, y - 10, 2, 2);
+  ctx.fillRect(x + 4, y - 10, 2, 2);
+  ctx.fillStyle = "#f7e3bf";
+  ctx.fillRect(x - 7, y + 2, 4, 7);
+}
+function shard(x, y) {
+  disk(x, y + 5, 22, "#f9dfa435");
+  ctx.fillStyle = "#fce0a2";
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = i * Math.PI / 4 - Math.PI / 2;
+    const r = i % 2 ? 5 : 16;
+    if (i === 0) ctx.moveTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+    else ctx.lineTo(x + Math.cos(angle) * r, y + Math.sin(angle) * r);
+  }
+  ctx.closePath();
+  ctx.fill();
+  disk(x, y, 3, "#fff7df");
+}
+function props(rows) {
+  for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
+    const c = rows[y][x], cx = (x + 0.5) * TILE, cy = (y + 0.5) * TILE;
+    if (c === "#") {
+      tree(cx + (random2(x, y) - 0.5) * 16, cy + (random2(y, x) - 0.5) * 12, y * 7 + x);
+    } else if (c === "L") character(cx, cy + 5, "#985f84", "#ad7d58");
+    else if (c === "*") shard(cx, cy);
+    else if (c === "B" || c === "+") beacon(cx, cy, c === "+");
+    else if (c === "H") cottage(cx, cy);
+    else if (c === "~" || c === "=") river(cx, cy, c === "=");
+  }
+}
+function hero(x, y) {
+  character(x, y, "#345f99", "#6a4d3c");
 }
 
 let current = null;
 let busy = false;
 let menuOpen = false;
 let dismissTimer;
+const held = new Set();
+let movementTimer;
 const noteworthy = new Set([
   "start", "met_lyuna", "already_met", "need_lantern",
   "found_shard", "already_found", "need_shard", "bridge_restored",
@@ -79,6 +235,7 @@ const noteworthy = new Set([
 ]);
 function openMenu(open) {
   menuOpen = open;
+  if (open) clearMovement();
   menu.hidden = !open;
   scrim.hidden = !open;
   toggle.setAttribute("aria-expanded", String(open));
@@ -98,15 +255,18 @@ function draw() {
   canvas.width = Math.round(bounds.width * ratio);
   canvas.height = Math.round(bounds.height * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.fillStyle = "#213d41";
+  ctx.fillStyle = "#193739";
   ctx.fillRect(0, 0, bounds.width, bounds.height);
-  // Always show the complete Cerune map, scaled as large as possible.
   const factor = Math.min(bounds.width / MAP_WIDTH, bounds.height / MAP_HEIGHT);
   const offsetX = (bounds.width - MAP_WIDTH * factor) / 2;
   const offsetY = (bounds.height - MAP_HEIGHT * factor) / 2;
   ctx.translate(offsetX, offsetY);
   ctx.scale(factor, factor);
-  for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) tile(x, y, current.tiles[y][x]);
+  const rows = current.tiles.map(row => row.replace("@", "."));
+  forestFloor();
+  paths(rows);
+  props(rows);
+  hero(current.px / 1000 * TILE, current.py / 1000 * TILE);
 }
 function render(state) {
   current = state;
@@ -143,22 +303,49 @@ async function act(key) {
     busy = false;
   }
 }
-const mapping = {
-  ArrowUp:"w",ArrowDown:"s",ArrowLeft:"a",ArrowRight:"d",
-  " ":"e",e:"e",E:"e",r:"r",R:"r",
-  w:"w",a:"a",s:"s",d:"d",W:"w",A:"a",S:"s",D:"d"
+const movementKeys = {
+  ArrowUp:"w", ArrowDown:"s", ArrowLeft:"a", ArrowRight:"d",
+  w:"w", W:"w", a:"a", A:"a", s:"s", S:"s", d:"d", D:"d"
 };
+function movementKey() {
+  const x = Number(held.has("d")) - Number(held.has("a"));
+  const y = Number(held.has("s")) - Number(held.has("w"));
+  if (x === 0 && y === 0) return null;
+  if (x === -1 && y === -1) return "h";
+  if (x === 1 && y === -1) return "u";
+  if (x === -1 && y === 1) return "b";
+  if (x === 1 && y === 1) return "n";
+  return x === -1 ? "a" : x === 1 ? "d" : y === -1 ? "w" : "s";
+}
+function clearMovement() { held.clear(); }
 document.addEventListener("keydown", event => {
   if (event.key === "Escape" && menuOpen) { event.preventDefault(); openMenu(false); return; }
-  if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
+  if (event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
   if (event.target instanceof HTMLElement && event.target.closest("button,input")) return;
-  const key = mapping[event.key];
-  if (key) {
+  const direction = movementKeys[event.key];
+  if (direction) {
     event.preventDefault();
-    if (key === "r") restart();
-    else act(key);
+    held.add(direction);
+    return;
+  }
+  if (event.repeat) return;
+  if (event.key === " " || event.key.toLowerCase() === "e") {
+    event.preventDefault(); act("e");
+  } else if (event.key.toLowerCase() === "r") {
+    event.preventDefault(); restart();
   }
 });
+document.addEventListener("keyup", event => {
+  const direction = movementKeys[event.key];
+  if (direction) held.delete(direction);
+});
+window.addEventListener("blur", clearMovement);
+movementTimer = window.setInterval(() => {
+  if (!busy && !menuOpen) {
+    const key = movementKey();
+    if (key) act(key);
+  }
+}, 48);
 function restart() {
   if (menuOpen) openMenu(false);
   if (window.confirm("最初からやり直しますか？ 今の進行は失われます。")) act("r");
