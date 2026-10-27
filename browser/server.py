@@ -100,6 +100,8 @@ def handler_for(world):
                 "/game.js": ("game.js", "text/javascript; charset=utf-8"),
                 "/style.css": ("style.css", "text/css; charset=utf-8"),
                 "/assets/hero.svg": ("assets/hero.svg", "image/svg+xml"),
+                "/assets/hero-boy.svg": ("assets/hero-boy.svg", "image/svg+xml"),
+                "/assets/hero-girl.svg": ("assets/hero-girl.svg", "image/svg+xml"),
                 "/assets/lyuna.svg": ("assets/lyuna.svg", "image/svg+xml"),
                 "/assets/lyuna.png": ("assets/lyuna.png", "image/png"),
             }
