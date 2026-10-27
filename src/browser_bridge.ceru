@@ -24,11 +24,12 @@ fn event_name(event: world::Event) -> string {
 }
 
 fn show(state: world::FreeWorld, event: string) -> void {
-    print("STELLE/2");
+    print("STELLE/3");
     print(event);
     print(state.grid.finished);
     print(state.px);
     print(state.py);
+    print(state.facing);
     mut y: i64 = 0;
     while y < 6 {
         mut row: string = "";
