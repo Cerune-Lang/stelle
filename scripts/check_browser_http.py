@@ -39,12 +39,12 @@ def main():
         with request.urlopen(base + "/game.js", timeout=5) as reply:
             assert reply.status == 200
             assert b"render(state)" in reply.read()
-        for name in ("hero", "lyuna"):
+        for name in ("hero", "lyuna", "hero-boy", "hero-girl"):
             with request.urlopen(base + "/assets/" + name + ".svg", timeout=5) as reply:
                 assert reply.status == 200
                 assert reply.headers.get_content_type() == "image/svg+xml"
                 sprite = ET.fromstring(reply.read())
-                assert sprite.attrib.get("viewBox") == "0 0 128 160"
+                assert sprite.attrib.get("viewBox") == ("0 0 256 320" if name.startswith("hero-") else "0 0 128 160")
         with request.urlopen(base + "/api/state", timeout=5) as reply:
             before = json.load(reply)
         assert before["event"] == "start"
