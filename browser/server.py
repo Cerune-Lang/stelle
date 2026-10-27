@@ -101,6 +101,7 @@ def handler_for(world):
                 "/style.css": ("style.css", "text/css; charset=utf-8"),
                 "/assets/hero.svg": ("assets/hero.svg", "image/svg+xml"),
                 "/assets/lyuna.svg": ("assets/lyuna.svg", "image/svg+xml"),
+                "/assets/lyuna.png": ("assets/lyuna.png", "image/png"),
             }
             if route not in routes:
                 self.respond(404, b"Not found", "text/plain; charset=utf-8")
