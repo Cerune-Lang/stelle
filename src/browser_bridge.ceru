@@ -52,44 +52,32 @@ fn main() -> void {
         match input {
             io::ReadLine::End {} => { return; },
             io::ReadLine::Line { text: text } => {
-                mut valid: bool = true;
+                mut valid: bool = false;
                 mut reset: bool = false;
                 mut dx: i64 = 0;
                 mut dy: i64 = 0;
                 mut interact: bool = false;
                 if text == "w\n" || text == "w\r\n" || text == "w" {
-                    dy = -1;
+                    dy = -1; valid = true;
                 }
                 if text == "s\n" || text == "s\r\n" || text == "s" {
-                    dy = 1;
+                    dy = 1; valid = true;
                 }
                 if text == "a\n" || text == "a\r\n" || text == "a" {
-                    dx = -1;
+                    dx = -1; valid = true;
                 }
                 if text == "d\n" || text == "d\r\n" || text == "d" {
-                    dx = 1;
+                    dx = 1; valid = true;
                 }
                 if text == "e\n" || text == "e\r\n" || text == "e" {
-                    interact = true;
+                    interact = true; valid = true;
                 }
-                if text == "h\n" || text == "h\r\n" || text == "h" { dx = -1; dy = -1; }
-                if text == "u\n" || text == "u\r\n" || text == "u" { dx = 1; dy = -1; }
-                if text == "b\n" || text == "b\r\n" || text == "b" { dx = -1; dy = 1; }
-                if text == "n\n" || text == "n\r\n" || text == "n" { dx = 1; dy = 1; }
+                if text == "h\n" || text == "h\r\n" || text == "h" { dx = -1; dy = -1; valid = true; }
+                if text == "u\n" || text == "u\r\n" || text == "u" { dx = 1; dy = -1; valid = true; }
+                if text == "b\n" || text == "b\r\n" || text == "b" { dx = -1; dy = 1; valid = true; }
+                if text == "n\n" || text == "n\r\n" || text == "n" { dx = 1; dy = 1; valid = true; }
                 if text == "r\n" || text == "r\r\n" || text == "r" {
-                    reset = true;
-                }
-                if text != "h\n" && text != "h\r\n" && text != "h"
-                    && text != "u\n" && text != "u\r\n" && text != "u"
-                    && text != "b\n" && text != "b\r\n" && text != "b"
-                    && text != "n\n" && text != "n\r\n" && text != "n"
-                    && text != "w\n" && text != "w\r\n" && text != "w"
-                    && text != "s\n" && text != "s\r\n" && text != "s"
-                    && text != "a\n" && text != "a\r\n" && text != "a"
-                    && text != "d\n" && text != "d\r\n" && text != "d"
-                    && text != "e\n" && text != "e\r\n" && text != "e"
-                    && text != "r\n" && text != "r\r\n" && text != "r" {
-                    valid = false;
+                    reset = true; valid = true;
                 }
                 if reset {
                     state = world::start_free();
