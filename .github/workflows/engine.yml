@@ -41,3 +41,5 @@ jobs:
         run: python3 stelle/scripts/check_relationship.py --binary cerune/target/debug/cerune
       - name: Test player profile
         run: python3 stelle/scripts/check_profile.py --binary cerune/target/debug/cerune
+      - name: Test browser bridge protocol
+        run: python3 stelle/scripts/check_browser.py --binary cerune/target/debug/cerune
