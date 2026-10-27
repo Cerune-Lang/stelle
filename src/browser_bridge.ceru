@@ -23,16 +23,18 @@ fn event_name(event: world::Event) -> string {
     return name;
 }
 
-fn show(state: world::World, event: string) -> void {
-    print("STELLE/1");
+fn show(state: world::FreeWorld, event: string) -> void {
+    print("STELLE/2");
     print(event);
-    print(state.finished);
+    print(state.grid.finished);
+    print(state.px);
+    print(state.py);
     mut y: i64 = 0;
     while y < 6 {
         mut row: string = "";
         mut x: i64 = 0;
         while x < 7 {
-            row = concat(row, world::tile(state, x, y));
+            row = concat(row, world::tile(state.grid, x, y));
             x = x + 1;
         }
         print(row);
@@ -43,7 +45,7 @@ fn show(state: world::World, event: string) -> void {
 }
 
 fn main() -> void {
-    mut state: world::World = world::start();
+    mut state: world::FreeWorld = world::start_free();
     show(state, "start");
     while true {
         input: io::ReadLine = io::read_line(16);
@@ -52,26 +54,36 @@ fn main() -> void {
             io::ReadLine::Line { text: text } => {
                 mut valid: bool = true;
                 mut reset: bool = false;
-                mut action: world::Action = world::Action::Interact {};
+                mut dx: i64 = 0;
+                mut dy: i64 = 0;
+                mut interact: bool = false;
                 if text == "w\n" || text == "w\r\n" || text == "w" {
-                    action = world::Action::North {};
+                    dy = -1;
                 }
                 if text == "s\n" || text == "s\r\n" || text == "s" {
-                    action = world::Action::South {};
+                    dy = 1;
                 }
                 if text == "a\n" || text == "a\r\n" || text == "a" {
-                    action = world::Action::West {};
+                    dx = -1;
                 }
                 if text == "d\n" || text == "d\r\n" || text == "d" {
-                    action = world::Action::East {};
+                    dx = 1;
                 }
                 if text == "e\n" || text == "e\r\n" || text == "e" {
-                    action = world::Action::Interact {};
+                    interact = true;
                 }
+                if text == "h\n" || text == "h\r\n" || text == "h" { dx = -1; dy = -1; }
+                if text == "u\n" || text == "u\r\n" || text == "u" { dx = 1; dy = -1; }
+                if text == "b\n" || text == "b\r\n" || text == "b" { dx = -1; dy = 1; }
+                if text == "n\n" || text == "n\r\n" || text == "n" { dx = 1; dy = 1; }
                 if text == "r\n" || text == "r\r\n" || text == "r" {
                     reset = true;
                 }
-                if text != "w\n" && text != "w\r\n" && text != "w"
+                if text != "h\n" && text != "h\r\n" && text != "h"
+                    && text != "u\n" && text != "u\r\n" && text != "u"
+                    && text != "b\n" && text != "b\r\n" && text != "b"
+                    && text != "n\n" && text != "n\r\n" && text != "n"
+                    && text != "w\n" && text != "w\r\n" && text != "w"
                     && text != "s\n" && text != "s\r\n" && text != "s"
                     && text != "a\n" && text != "a\r\n" && text != "a"
                     && text != "d\n" && text != "d\r\n" && text != "d"
@@ -80,11 +92,12 @@ fn main() -> void {
                     valid = false;
                 }
                 if reset {
-                    state = world::start();
+                    state = world::start_free();
                     show(state, "start");
                 }
                 if valid && !reset {
-                    turn: world::Turn = world::advance(state, action);
+                    mut turn: world::FreeTurn = world::move_free(state, dx, dy);
+                    if interact { turn = world::interact_free(state); }
                     state = turn.state;
                     show(state, event_name(turn.event));
                 }
