@@ -1,14 +1,19 @@
-// Character creation data only. No backstory, job, romance, or personality is implied.
-// 'age' is the age at creation, until the world calendar is designed.
+// Player creation contains no fixed backstory, job, personality, or romance.
+// The default name is user-approved and is not a canonical identity.
 pub enum Gender {
     Female,
     Male,
     Unspecified,
 }
 
+pub enum Age {
+    Years { value: i64 },
+    Unspecified,
+}
+
 pub type Player {
     name: string,
-    age: i64,
+    age: Age,
     gender: Gender,
 }
 
@@ -18,16 +23,34 @@ pub enum Create {
     InvalidAge,
 }
 
-// The length guard protects the eventual CLI/UI, not the world's lore.
-// A positive age has no arbitrary upper limit: longevity is a world-building decision.
-pub fn create(name: string, age: i64, gender: Gender) -> Create {
-    if byte_len(name) == 0 || byte_len(name) > 96 {
+pub fn default_name() -> string {
+    return "ステラ";
+}
+
+// A blank name selects the default; all other names are freely chosen.
+// The 96-byte bound is a CLI/display protection, not part of the setting.
+// Age/gender can remain unspecified; there is no arbitrary maximum age.
+pub fn create(name: string, age: Age, gender: Gender) -> Create {
+    mut resolved_name: string = name;
+    if name == "" {
+        resolved_name = default_name();
+    }
+    if byte_len(resolved_name) > 96 {
         return Create::InvalidName {};
     }
-    if age <= 0 {
-        return Create::InvalidAge {};
+    match age {
+        Age::Years { value: value } => {
+            if value <= 0 {
+                return Create::InvalidAge {};
+            }
+        },
+        Age::Unspecified {} => {},
     }
     return Create::Created {
-        player: Player { name: name, age: age, gender: gender },
+        player: Player {
+            name: resolved_name,
+            age: age,
+            gender: gender,
+        },
     };
 }
