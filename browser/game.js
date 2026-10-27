@@ -231,7 +231,7 @@ function savedAppearance() {
   catch { return "boy"; }
 }
 let heroAppearance = savedAppearance();
-function heroAsset() { return "/assets/hero-" + heroAppearance + ".svg"; }
+function heroAsset() { return "/assets/hero-" + heroAppearance + ".png"; }
 const ready = {hero: false, lyuna: false};
 for (const name of Object.keys(sprites)) {
   sprites[name].addEventListener("load", () => {
@@ -239,7 +239,10 @@ for (const name of Object.keys(sprites)) {
     draw();
   });
   sprites[name].addEventListener("error", () => {
-    ready[name] = false; // Existing Canvas characters remain as fallback.
+    ready[name] = false;
+    if (name === "hero" && !sprites.hero.src.endsWith(".svg")) {
+      sprites.hero.src = "/assets/hero-" + heroAppearance + ".svg";
+    }
     draw();
   });
   sprites[name].src = name === "lyuna" ? "/assets/lyuna.png" : heroAsset();
@@ -260,11 +263,12 @@ function drawSprite(name, x, y, direction, walking) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   const isLyuna = name === "lyuna";
-  const cellW = isLyuna ? 96 : 64;
-  const cellH = isLyuna ? 96 : 80;
+  const heroPng = !isLyuna && sprites.hero.src.endsWith(".png");
+  const cellW = isLyuna || heroPng ? 96 : 64;
+  const cellH = isLyuna || heroPng ? 96 : 80;
   const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
-  const destW = isLyuna ? 53 : 42;
-  const destH = isLyuna ? 53 : 53;
+  const destW = isLyuna || heroPng ? 53 : 42;
+  const destH = isLyuna || heroPng ? 53 : 53;
   ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
     Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
   ctx.restore();
