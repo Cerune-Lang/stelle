@@ -231,7 +231,7 @@ function savedAppearance() {
   catch { return "boy"; }
 }
 let heroAppearance = savedAppearance();
-function heroAsset() { return "/assets/hero-" + heroAppearance + ".svg"; }
+function heroAsset() { return "/assets/hero-" + heroAppearance + ".png"; }
 const ready = {hero: false, lyuna: false};
 for (const name of Object.keys(sprites)) {
   sprites[name].addEventListener("load", () => {
@@ -239,7 +239,10 @@ for (const name of Object.keys(sprites)) {
     draw();
   });
   sprites[name].addEventListener("error", () => {
-    ready[name] = false; // Existing Canvas characters remain as fallback.
+    ready[name] = false;
+    if (name === "hero" && !sprites.hero.src.endsWith(".svg")) {
+      sprites.hero.src = "/assets/hero-" + heroAppearance + ".svg";
+    }
     draw();
   });
   sprites[name].src = name === "lyuna" ? "/assets/lyuna.png" : heroAsset();
@@ -250,23 +253,33 @@ let lastMove = 0;
 let previousX = null;
 let previousY = null;
 const facingRows = {down: 0, left: 1, right: 2, up: 3};
+// All production PNG atlases: 384x384, 4x4 frames, 96x96 per frame.
+// Source artworks are normalized OFFLINE: same visible height & foot at (48,90).
+const SPRITE_FRAME = 96;
+const SPRITE_DRAW = 53;   // Shared in-world dimensions for Lyuna and both heroes.
+const SPRITE_FOOT_Y = 90;
+const SPRITE_FOOT_OFFSET = 15; // The character's feet appear just below world center.
 function drawSprite(name, x, y, direction, walking) {
   if (!ready[name]) {
     if (name === "hero") hero(x, y);
     else character(x, y, "#985f84", "#ad7d58");
     return;
   }
-  const frame = walking && name === "hero" ? Math.floor(stride) % 4 : 0;
+  const png = sprites[name].src.endsWith(".png");
+  const step = walking ? Math.floor(stride) % 4 : 0;
+  // Legacy hero SVG is used only if the PNG is missing; it is NOT a
+  // production sprite and uses its own old frame geometry.
+  const cellW = png ? SPRITE_FRAME : 64;
+  const cellH = png ? SPRITE_FRAME : 80;
+  const destH = SPRITE_DRAW;
+  const destW = png ? SPRITE_DRAW : 42;
+  const foot = png ? SPRITE_FOOT_Y : 70;
   ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  const isLyuna = name === "lyuna";
-  const cellW = isLyuna ? 96 : 64;
-  const cellH = isLyuna ? 96 : 80;
-  const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
-  const destW = isLyuna ? 53 : 42;
-  const destH = isLyuna ? 53 : 53;
-  ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
-    Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(sprites[name], step * cellW, facingRows[direction] * cellH, cellW, cellH,
+    Math.round(x - destW / 2),
+    Math.round(y + SPRITE_FOOT_OFFSET - destH * foot / cellH),
+    destW, destH);
   ctx.restore();
 }
 
