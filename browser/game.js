@@ -1,10 +1,20 @@
 "use strict";
-// Only presentation and input live here; map/collision/events all come from Cerune.
+// Cerune owns every movement, collision and progression event.
+// The browser only scales and draws the returned 7x6 map and presents controls.
+const game = document.querySelector("#game");
 const canvas = document.querySelector("#map");
 const ctx = canvas.getContext("2d");
 const story = document.querySelector("#story");
-const progress = document.querySelector("#progress");
+const dialogue = document.querySelector("#dialogue");
+const journal = document.querySelector("#journal");
+const menu = document.querySelector("#menu");
+const scrim = document.querySelector("#menu-scrim");
+const toggle = document.querySelector("#menu-toggle");
+const touch = document.querySelector("#touch-controls");
+const errorBox = document.querySelector("#error");
 const TILE = 80;
+const MAP_WIDTH = 7 * TILE;
+const MAP_HEIGHT = 6 * TILE;
 const messages = {
   start: "昨夜、星がひとつ消えた。\n村の橋を覚えているのは、誰？",
   moved: "小道を歩く。風が草を揺らしている。",
@@ -22,7 +32,6 @@ const messages = {
   already_finished: "第1章はクリア済み。",
   invalid: "操作を読み取れなかった。"
 };
-const ground = ["#152633", "#527a52", "#527a52", "#637e57", "#527a52", "#527a52", "#152633"];
 function tile(x, y, c) {
   const X = x*TILE, Y = y*TILE;
   ctx.fillStyle = c === "#" ? "#293e3d" : c === "~" ? "#357f9e" : "#6c9168";
@@ -58,30 +67,120 @@ function tile(x, y, c) {
     ctx.fillStyle="#92b27d";ctx.fillRect(X+19,Y+15,3,9);ctx.fillRect(X+60,Y+52,3,10);
   }
 }
-let busy=false;
+
+let current = null;
+let busy = false;
+let menuOpen = false;
+let dismissTimer;
+const noteworthy = new Set([
+  "start", "met_lyuna", "already_met", "need_lantern",
+  "found_shard", "already_found", "need_shard", "bridge_restored",
+  "already_restored", "found_diary", "already_finished", "nothing"
+]);
+function openMenu(open) {
+  menuOpen = open;
+  menu.hidden = !open;
+  scrim.hidden = !open;
+  toggle.setAttribute("aria-expanded", String(open));
+  if (open) document.querySelector("#menu-close").focus();
+  else toggle.focus();
+}
+function showMessage(message, persistent) {
+  clearTimeout(dismissTimer);
+  story.textContent = message;
+  dialogue.hidden = false;
+  if (!persistent) dismissTimer = setTimeout(() => { dialogue.hidden = true; }, 2600);
+}
+function draw() {
+  if (!current) return;
+  const bounds = game.getBoundingClientRect();
+  const ratio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(bounds.width * ratio);
+  canvas.height = Math.round(bounds.height * ratio);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.fillStyle = "#213d41";
+  ctx.fillRect(0, 0, bounds.width, bounds.height);
+  // Always show the complete Cerune map, scaled as large as possible.
+  const factor = Math.min(bounds.width / MAP_WIDTH, bounds.height / MAP_HEIGHT);
+  const offsetX = (bounds.width - MAP_WIDTH * factor) / 2;
+  const offsetY = (bounds.height - MAP_HEIGHT * factor) / 2;
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(factor, factor);
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) tile(x, y, current.tiles[y][x]);
+}
 function render(state) {
-  for (let y=0;y<6;y++)for(let x=0;x<7;x++)tile(x,y,state.tiles[y][x]);
-  story.textContent=messages[state.event]??"";
-  const map=state.tiles.join("");
-  progress.textContent=state.finished?"第1章をクリアしました！ R キーでもう一度。":
-    map.includes("L") && !map.includes("*")?"欠片を手に入れた。ビーコンを探そう。":
-    "E キーで足元を調べよう。リュナは開始地点で話せるよ。";
+  current = state;
+  draw();
+  const message = messages[state.event] ?? "";
+  if (state.event !== "moved" && message) {
+    journal.textContent = message;
+  }
+  if (state.event === "moved") {
+    clearTimeout(dismissTimer);
+    dialogue.hidden = true;
+  } else if (message) {
+    showMessage(message, noteworthy.has(state.event));
+  }
+}
+function displayError(message) {
+  errorBox.textContent = message;
+  errorBox.hidden = false;
 }
 async function act(key) {
-  if(busy)return;
-  busy=true;
+  if (busy || menuOpen) return;
+  busy = true;
   try {
-    const res=await fetch("/api/action",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})});
-    if(!res.ok)throw new Error("HTTP "+res.status);
-    render(await res.json());
-  }catch(e){story.textContent="接続エラー: "+e.message+"\nサーバーを確認してください。";}
-  finally{busy=false;}
+    const response = await fetch("/api/action", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({key})
+    });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    render(await response.json());
+    errorBox.hidden = true;
+  } catch (error) {
+    displayError("接続エラー: " + error.message + "。サーバーを確認してください。");
+  } finally {
+    busy = false;
+  }
 }
-document.addEventListener("keydown",e=>{
-  if(e.repeat||e.altKey||e.ctrlKey||e.metaKey)return;
-  const mapping={ArrowUp:"w",ArrowDown:"s",ArrowLeft:"a",ArrowRight:"d"," ":"e",e:"e",E:"e",r:"r",R:"r",w:"w",a:"a",s:"s",d:"d",W:"w",A:"a",S:"s",D:"d"};
-  const key=mapping[e.key];
-  if(key){e.preventDefault();act(key);}
+const mapping = {
+  ArrowUp:"w",ArrowDown:"s",ArrowLeft:"a",ArrowRight:"d",
+  " ":"e",e:"e",E:"e",r:"r",R:"r",
+  w:"w",a:"a",s:"s",d:"d",W:"w",A:"a",S:"s",D:"d"
+};
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape" && menuOpen) { event.preventDefault(); openMenu(false); return; }
+  if (event.repeat || event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
+  if (event.target instanceof HTMLElement && event.target.closest("button,input")) return;
+  const key = mapping[event.key];
+  if (key) {
+    event.preventDefault();
+    if (key === "r") restart();
+    else act(key);
+  }
 });
-document.querySelectorAll("button[data-key]").forEach(b=>b.addEventListener("click",()=>act(b.dataset.key)));
-fetch("/api/state").then(r=>{if(!r.ok)throw Error("HTTP "+r.status);return r.json();}).then(render).catch(e=>{story.textContent="起動できませんでした: "+e.message;});
+function restart() {
+  if (menuOpen) openMenu(false);
+  if (window.confirm("最初からやり直しますか？ 今の進行は失われます。")) act("r");
+}
+toggle.addEventListener("click", () => openMenu(!menuOpen));
+document.querySelector("#menu-close").addEventListener("click", () => openMenu(false));
+scrim.addEventListener("click", () => openMenu(false));
+document.querySelector("#dismiss-dialogue").addEventListener("click", () => {dialogue.hidden = true;});
+document.querySelector("#restart").addEventListener("click", restart);
+document.querySelector("#fullscreen").addEventListener("click", async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await game.requestFullscreen();
+  } catch (error) { displayError("全画面表示: " + error.message); }
+});
+document.querySelector("#show-controls").addEventListener("change", event => {
+  touch.hidden = !event.target.checked;
+});
+document.querySelectorAll("button[data-key]").forEach(button =>
+  button.addEventListener("click", () => act(button.dataset.key)));
+window.addEventListener("resize", draw);
+fetch("/api/state")
+  .then(response => { if (!response.ok) throw Error("HTTP " + response.status); return response.json(); })
+  .then(render)
+  .catch(error => displayError("起動できませんでした: " + error.message));
