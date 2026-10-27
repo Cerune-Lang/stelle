@@ -27,7 +27,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", default="cerune")
     args = parser.parse_args()
-    checked = subprocess.run([args.binary, "check", str(SOURCE)], capture_output=True, text=True, timeout=30)
+    binary = str(Path(args.binary).resolve()) if Path(args.binary).is_file() else args.binary
+    checked = subprocess.run([binary, "check", str(SOURCE)], capture_output=True, text=True, timeout=30)
     if checked.returncode:
         raise AssertionError(checked.stderr)
     for scenario, keys, expected in [
@@ -37,7 +38,7 @@ def main():
         ("restart", "er", ["start", "met_lyuna", "start"]),
         ("invalid", "z", ["start", "invalid"]),
     ]:
-        proc = subprocess.Popen([args.binary, "run", str(SOURCE)], stdin=subprocess.PIPE,
+        proc = subprocess.Popen([binary, "run", str(SOURCE)], stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=ROOT, bufsize=0)
         try:
             events = [read_frame(proc.stdout)]
