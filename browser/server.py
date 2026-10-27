@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "browser"
 SOURCE = ROOT / "src" / "browser_bridge.ceru"
 WIDTH, HEIGHT = 7, 6
+
 EVENTS = {
     "start", "moved", "blocked", "nothing", "met_lyuna", "already_met",
     "need_lantern", "found_shard", "already_found", "need_shard",
@@ -36,17 +37,21 @@ class WorldProcess:
             if not raw:
                 raise RuntimeError("Cerune exited before completing its state frame")
             return raw.decode("utf-8").rstrip("\r\n")
-        if line() != "STELLE/1":
+        if line() != "STELLE/2":
             raise RuntimeError("Unsupported Cerune state protocol")
         event = line()
         finished = line()
+        px = line()
+        py = line()
         tiles = [line() for _ in range(HEIGHT)]
         if (event not in EVENTS or finished not in ("true", "false")
+                or not px.isdecimal() or not py.isdecimal()
+                or not (0 <= int(px) <= 7000 and 0 <= int(py) <= 6000)
                 or any(len(row) != WIDTH or any(c not in "#.@L*B~+=H" for c in row)
                        for row in tiles)
                 or line() != "END"):
             raise RuntimeError("Invalid Cerune state frame")
-        return {"event": event, "finished": finished == "true", "tiles": tiles}
+        return {"event": event, "finished": finished == "true", "tiles": tiles, "px": int(px), "py": int(py)}
 
     def action(self, key):
         with self.lock:
@@ -122,7 +127,7 @@ def handler_for(world):
                     or set(body) != {"key"}
                     or not isinstance(body["key"], str)
                     or len(body["key"]) != 1
-                    or body["key"] not in "wasder"
+                    or body["key"] not in "wasderhubn"
                 ):
                     raise ValueError()
             except (ValueError, TypeError, json.JSONDecodeError):
