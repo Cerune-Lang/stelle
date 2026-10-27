@@ -1,0 +1,117 @@
+// A small, directed relationship graph. No canonical characters or story values live here.
+// Entries are kept in insertion order and copied on each change.
+pub type Relationship {
+    from_id: i64,
+    to_id: i64,
+    trust: i64,
+    affection: i64,
+    tension: i64,
+}
+
+pub type Graph {
+    edges: [Relationship; 8],
+    length: i64,
+}
+
+pub enum Outcome {
+    Inserted,
+    Updated,
+    Full,
+    Invalid,
+}
+
+pub type Write {
+    graph: Graph,
+    outcome: Outcome,
+}
+
+pub enum Lookup {
+    Found { relation: Relationship },
+    Missing,
+}
+
+pub fn empty() -> Graph {
+    placeholder: Relationship = Relationship {
+        from_id: -1, to_id: -1,
+        trust: 0, affection: 0, tension: 0,
+    };
+    return Graph {
+        edges: [
+            placeholder, placeholder, placeholder, placeholder,
+            placeholder, placeholder, placeholder, placeholder,
+        ],
+        length: 0,
+    };
+}
+
+pub fn capacity() -> i64 {
+    return 8;
+}
+
+fn valid_length(graph: Graph) -> bool {
+    return graph.length >= 0 && graph.length <= array_len(graph.edges);
+}
+
+fn valid_relation(relation: Relationship) -> bool {
+    if relation.from_id < 0 || relation.to_id < 0 || relation.from_id == relation.to_id {
+        return false;
+    }
+    if relation.trust < 0 || relation.trust > 100 {
+        return false;
+    }
+    if relation.affection < 0 || relation.affection > 100 {
+        return false;
+    }
+    if relation.tension < 0 || relation.tension > 100 {
+        return false;
+    }
+    return true;
+}
+
+// Reading A -> B never automatically reads B -> A.
+pub fn find(graph: Graph, from_id: i64, to_id: i64) -> Lookup {
+    if !valid_length(graph) || from_id < 0 || to_id < 0 || from_id == to_id {
+        return Lookup::Missing {};
+    }
+    mut index: i64 = 0;
+    while index < graph.length {
+        relation: Relationship = graph.edges[index];
+        if relation.from_id == from_id && relation.to_id == to_id {
+            return Lookup::Found { relation: relation };
+        }
+        index = index + 1;
+    }
+    return Lookup::Missing {};
+}
+
+// Updates are immutable: the input graph stays untouched.
+// Full/Invalid return the unchanged graph. IDs and scores are mechanical only.
+pub fn upsert(graph: Graph, relation: Relationship) -> Write {
+    if !valid_length(graph) || !valid_relation(relation) {
+        return Write { graph: graph, outcome: Outcome::Invalid {} };
+    }
+
+    mut index: i64 = 0;
+    while index < graph.length {
+        old: Relationship = graph.edges[index];
+        if old.from_id == relation.from_id && old.to_id == relation.to_id {
+            mut edges: [Relationship; 8] = graph.edges;
+            edges[index] = relation;
+            return Write {
+                graph: Graph { edges: edges, length: graph.length },
+                outcome: Outcome::Updated {},
+            };
+        }
+        index = index + 1;
+    }
+
+    if graph.length == capacity() {
+        return Write { graph: graph, outcome: Outcome::Full {} };
+    }
+    mut edges: [Relationship; 8] = graph.edges;
+    edges[graph.length] = relation;
+    return Write {
+        graph: Graph { edges: edges, length: graph.length + 1 },
+        outcome: Outcome::Inserted {},
+    };
+}
