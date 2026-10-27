@@ -225,6 +225,13 @@ function hero(x, y) {
 
 // Original bundled 4x4 frame sheets. SVG is local-only and cannot affect game rules.
 const sprites = {hero: new Image(), lyuna: new Image()};
+const appearanceKey = "stelle.hero.appearance.v1";
+function savedAppearance() {
+  try { return localStorage.getItem(appearanceKey) === "girl" ? "girl" : "boy"; }
+  catch { return "boy"; }
+}
+let heroAppearance = savedAppearance();
+function heroAsset() { return "/assets/hero-" + heroAppearance + ".svg"; }
 const ready = {hero: false, lyuna: false};
 for (const name of Object.keys(sprites)) {
   sprites[name].addEventListener("load", () => {
@@ -235,7 +242,7 @@ for (const name of Object.keys(sprites)) {
     ready[name] = false; // Existing Canvas characters remain as fallback.
     draw();
   });
-  sprites[name].src = name === "lyuna" ? "/assets/lyuna.png" : "/assets/hero.svg";
+  sprites[name].src = name === "lyuna" ? "/assets/lyuna.png" : heroAsset();
 }
 let facing = "down";
 let stride = 0;
@@ -253,11 +260,11 @@ function drawSprite(name, x, y, direction, walking) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   const isLyuna = name === "lyuna";
-  const cellW = isLyuna ? 96 : 32;
-  const cellH = isLyuna ? 96 : 40;
+  const cellW = isLyuna ? 96 : 64;
+  const cellH = isLyuna ? 96 : 80;
   const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
-  const destW = isLyuna ? 53 : 36;
-  const destH = isLyuna ? 53 : 45;
+  const destW = isLyuna ? 53 : 42;
+  const destH = isLyuna ? 53 : 53;
   ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
     Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
   ctx.restore();
@@ -418,6 +425,17 @@ document.querySelector("#show-controls").addEventListener("change", event => {
 });
 document.querySelectorAll("button[data-key]").forEach(button =>
   button.addEventListener("click", () => act(button.dataset.key)));
+document.querySelectorAll('input[name="hero-appearance"]').forEach(input => {
+  input.checked = input.value === heroAppearance;
+  input.addEventListener("change", () => {
+    if (!input.checked) return;
+    heroAppearance = input.value === "girl" ? "girl" : "boy";
+    try { localStorage.setItem(appearanceKey, heroAppearance); } catch { /* private storage is optional */ }
+    ready.hero = false;
+    sprites.hero.src = heroAsset();
+    draw();
+  });
+});
 window.addEventListener("resize", draw);
 // Keep walking frames lively between replies from the local Cerune process.
 let lastFrame = -1;
