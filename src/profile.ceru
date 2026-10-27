@@ -1,0 +1,56 @@
+// Player creation contains no fixed backstory, job, personality, or romance.
+// The default name is user-approved and is not a canonical identity.
+pub enum Gender {
+    Female,
+    Male,
+    Unspecified,
+}
+
+pub enum Age {
+    Years { value: i64 },
+    Unspecified,
+}
+
+pub type Player {
+    name: string,
+    age: Age,
+    gender: Gender,
+}
+
+pub enum Create {
+    Created { player: Player },
+    InvalidName,
+    InvalidAge,
+}
+
+pub fn default_name() -> string {
+    return "ステラ";
+}
+
+// A blank name selects the default; all other names are freely chosen.
+// The 96-byte bound is a CLI/display protection, not part of the setting.
+// Age/gender can remain unspecified; there is no arbitrary maximum age.
+pub fn create(name: string, age: Age, gender: Gender) -> Create {
+    mut resolved_name: string = name;
+    if name == "" {
+        resolved_name = default_name();
+    }
+    if byte_len(resolved_name) > 96 {
+        return Create::InvalidName {};
+    }
+    match age {
+        Age::Years { value: value } => {
+            if value <= 0 {
+                return Create::InvalidAge {};
+            }
+        },
+        Age::Unspecified {} => {},
+    }
+    return Create::Created {
+        player: Player {
+            name: resolved_name,
+            age: age,
+            gender: gender,
+        },
+    };
+}

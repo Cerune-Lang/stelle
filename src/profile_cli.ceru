@@ -1,0 +1,92 @@
+import "profile.ceru" as profile;
+import "std:env" as env;
+import "std:num" as num;
+
+// Standalone profile prototype; does not change existing Chapter 1 or battle.
+// Usage: profile_cli [name] [age] [female|male|unspecified]
+// Omitting a field leaves it unset. Omitting/empty name uses "ステラ".
+fn main() -> void {
+    count: i64 = env::arg_count();
+    if count > 3 {
+        print("Usage: profile_cli [name] [age] [female|male|unspecified]");
+        return;
+    }
+
+    mut name: string = profile::default_name();
+    mut age: profile::Age = profile::Age::Unspecified {};
+    mut gender: profile::Gender = profile::Gender::Unspecified {};
+
+    if count > 0 {
+        match env::arg(0) {
+            env::Argument::Value { text: text } => { name = text; },
+            env::Argument::Missing {} => {},
+        }
+    }
+
+    if count > 1 {
+        match env::arg(1) {
+            env::Argument::Value { text: text } => {
+                if text != "" {
+                    match num::parse_i64(text) {
+                        num::ParseI64::Value { value: value } => {
+                            age = profile::Age::Years { value: value };
+                        },
+                        num::ParseI64::InvalidFormat {} => {
+                            print("Age must be an integer.");
+                            return;
+                        },
+                        num::ParseI64::OutOfRange {} => {
+                            print("Age is outside i64.");
+                            return;
+                        },
+                    }
+                }
+            },
+            env::Argument::Missing {} => {},
+        }
+    }
+
+    if count > 2 {
+        match env::arg(2) {
+            env::Argument::Value { text: text } => {
+                if text == "female" {
+                    gender = profile::Gender::Female {};
+                }
+                if text == "male" {
+                    gender = profile::Gender::Male {};
+                }
+                if text != "female" && text != "male"
+                    && text != "unspecified" && text != "" {
+                    print("Gender must be female, male, or unspecified.");
+                    return;
+                }
+            },
+            env::Argument::Missing {} => {},
+        }
+    }
+
+    match profile::create(name, age, gender) {
+        profile::Create::Created { player: player } => {
+            print("Stelle profile");
+            print("Name:");
+            print(player.name);
+            print("Age:");
+            match player.age {
+                profile::Age::Years { value: value } => { print(value); },
+                profile::Age::Unspecified {} => { print("unspecified"); },
+            }
+            print("Gender:");
+            match player.gender {
+                profile::Gender::Female {} => { print("female"); },
+                profile::Gender::Male {} => { print("male"); },
+                profile::Gender::Unspecified {} => { print("unspecified"); },
+            }
+        },
+        profile::Create::InvalidName {} => {
+            print("Name must contain at most 96 UTF-8 bytes.");
+        },
+        profile::Create::InvalidAge {} => {
+            print("Age must be positive.");
+        },
+    }
+}
