@@ -2,6 +2,8 @@
 // Cerune owns every movement, collision and progression event.
 // The browser only scales and draws the returned 7x6 map and presents controls.
 const game = document.querySelector("#game");
+const titleScreen = document.querySelector("#title-screen");
+let titleOpen = true;
 const canvas = document.querySelector("#map");
 const ctx = canvas.getContext("2d");
 const story = document.querySelector("#story");
@@ -301,7 +303,11 @@ function openMenu(open) {
   scrim.hidden = !open;
   toggle.setAttribute("aria-expanded", String(open));
   if (open) document.querySelector("#menu-close").focus();
-  else toggle.focus();
+  else {
+    if (titleOpen) titleScreen.hidden = false;
+    if (titleOpen) document.querySelector("#title-options").focus();
+    else toggle.focus();
+  }
 }
 function showMessage(message, persistent) {
   clearTimeout(dismissTimer);
@@ -362,7 +368,7 @@ function displayError(message) {
   errorBox.hidden = false;
 }
 async function act(key) {
-  if (busy || menuOpen) return;
+  if (busy || menuOpen || titleOpen) return;
   busy = true;
   try {
     const response = await fetch("/api/action", {
@@ -394,6 +400,7 @@ function movementKey() {
 }
 function clearMovement() { held.clear(); }
 document.addEventListener("keydown", event => {
+  if (titleOpen) return;
   if (event.key === "Escape" && menuOpen) { event.preventDefault(); openMenu(false); return; }
   if (event.altKey || event.ctrlKey || event.metaKey || menuOpen) return;
   if (event.target instanceof HTMLElement && event.target.closest("button,input")) return;
@@ -416,7 +423,7 @@ document.addEventListener("keyup", event => {
 });
 window.addEventListener("blur", clearMovement);
 movementTimer = window.setInterval(() => {
-  if (!busy && !menuOpen) {
+  if (!busy && !menuOpen && !titleOpen) {
     const key = movementKey();
     if (key) act(key);
   }
@@ -430,6 +437,17 @@ document.querySelector("#menu-close").addEventListener("click", () => openMenu(f
 scrim.addEventListener("click", () => openMenu(false));
 document.querySelector("#dismiss-dialogue").addEventListener("click", () => {dialogue.hidden = true;});
 document.querySelector("#restart").addEventListener("click", restart);
+document.querySelector("#title-start").addEventListener("click", () => {
+  clearMovement();
+  titleOpen = false;
+  titleScreen.hidden = true;
+  document.querySelector("#menu-toggle").focus();
+});
+document.querySelector("#title-options").addEventListener("click", () => {
+  // Keep title visible underneath the settings menu. Do not start gameplay.
+  titleScreen.hidden = true;
+  openMenu(true);
+});
 document.querySelector("#fullscreen").addEventListener("click", async () => {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
