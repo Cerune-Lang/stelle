@@ -226,6 +226,9 @@ function hero(x, y) {
 // Original bundled 4x4 frame sheets. SVG is local-only and cannot affect game rules.
 const sprites = {hero: new Image(), lyuna: new Image()};
 const appearanceKey = "stelle.hero.appearance.v1";
+const scaleKey = "stelle.sprite.scale.v1";
+let spriteScale = {hero: 120, lyuna: 100};
+try { const data=JSON.parse(localStorage.getItem(scaleKey) || "{}"); for (const name of ["hero","lyuna"]) if(Number.isInteger(data[name]) && data[name]>=70 && data[name]<=160) spriteScale[name]=data[name]; } catch { /* storage is optional */ }
 function savedAppearance() {
   try { return localStorage.getItem(appearanceKey) === "girl" ? "girl" : "boy"; }
   catch { return "boy"; }
@@ -267,8 +270,11 @@ function drawSprite(name, x, y, direction, walking) {
   const cellW = isLyuna || heroPng ? 96 : 64;
   const cellH = isLyuna || heroPng ? 96 : 80;
   const col = isLyuna && walking ? Math.floor(stride) % 4 : frame;
-  const destW = isLyuna || heroPng ? 53 : 42;
-  const destH = isLyuna || heroPng ? 53 : 53;
+  const naturalW = isLyuna || heroPng ? 53 : 42;
+  const naturalH = isLyuna || heroPng ? 53 : 53;
+  const factor = spriteScale[name] / 100;
+  const destW = naturalW * factor;
+  const destH = naturalH * factor;
   ctx.drawImage(sprites[name], col * cellW, facingRows[direction] * cellH, cellW, cellH,
     Math.round(x - destW / 2), Math.round(y - destH + 19), destW, destH);
   ctx.restore();
@@ -440,6 +446,18 @@ document.querySelectorAll('input[name="hero-appearance"]').forEach(input => {
     draw();
   });
 });
+for (const name of ["hero","lyuna"]) {
+  const slider = document.querySelector("#" + name + "-scale");
+  const output = document.querySelector("#" + name + "-scale-value");
+  slider.value = String(spriteScale[name]);
+  output.textContent = spriteScale[name] + "%";
+  slider.addEventListener("input", () => {
+    spriteScale[name] = Number(slider.value);
+    output.textContent = slider.value + "%";
+    try { localStorage.setItem(scaleKey, JSON.stringify(spriteScale)); } catch { /* optional */ }
+    draw();
+  });
+}
 window.addEventListener("resize", draw);
 // Keep walking frames lively between replies from the local Cerune process.
 let lastFrame = -1;
