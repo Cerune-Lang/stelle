@@ -255,23 +255,18 @@ function draw() {
   canvas.width = Math.round(bounds.width * ratio);
   canvas.height = Math.round(bounds.height * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-  ctx.fillStyle = "#213d41";
+  ctx.fillStyle = "#193739";
   ctx.fillRect(0, 0, bounds.width, bounds.height);
-  // Always show the complete Cerune map, scaled as large as possible.
   const factor = Math.min(bounds.width / MAP_WIDTH, bounds.height / MAP_HEIGHT);
   const offsetX = (bounds.width - MAP_WIDTH * factor) / 2;
   const offsetY = (bounds.height - MAP_HEIGHT * factor) / 2;
   ctx.translate(offsetX, offsetY);
   ctx.scale(factor, factor);
-  for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) {
-    const symbol = current.tiles[y][x];
-    tile(x, y, symbol === "@" ? "." : symbol);
-  }
-  // Cerune supplies the continuous position; drawing never decides collision.
-  ctx.save();
-  ctx.translate((current.px / 1000 - 0.5) * TILE, (current.py / 1000 - 0.5) * TILE);
-  tile(0, 0, "@");
-  ctx.restore();
+  const rows = current.tiles.map(row => row.replace("@", "."));
+  forestFloor();
+  paths(rows);
+  props(rows);
+  hero(current.px / 1000 * TILE, current.py / 1000 * TILE);
 }
 function render(state) {
   current = state;
