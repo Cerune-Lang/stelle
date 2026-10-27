@@ -102,6 +102,8 @@ def handler_for(world):
                 "/assets/hero.svg": ("assets/hero.svg", "image/svg+xml"),
                 "/assets/hero-boy.svg": ("assets/hero-boy.svg", "image/svg+xml"),
                 "/assets/hero-girl.svg": ("assets/hero-girl.svg", "image/svg+xml"),
+                "/assets/hero-boy.png": ("assets/hero-boy.png", "image/png"),
+                "/assets/hero-girl.png": ("assets/hero-girl.png", "image/png"),
                 "/assets/lyuna.svg": ("assets/lyuna.svg", "image/svg+xml"),
                 "/assets/lyuna.png": ("assets/lyuna.png", "image/png"),
             }
