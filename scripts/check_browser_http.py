@@ -2,6 +2,7 @@
 """Smoke-test the actual local HTTP server with a Cerune child process."""
 import argparse
 import json
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import subprocess
 import sys
@@ -38,6 +39,12 @@ def main():
         with request.urlopen(base + "/game.js", timeout=5) as reply:
             assert reply.status == 200
             assert b"render(state)" in reply.read()
+        for name in ("hero", "lyuna"):
+            with request.urlopen(base + "/assets/" + name + ".svg", timeout=5) as reply:
+                assert reply.status == 200
+                assert reply.headers.get_content_type() == "image/svg+xml"
+                sprite = ET.fromstring(reply.read())
+                assert sprite.attrib.get("viewBox") == "0 0 128 160"
         with request.urlopen(base + "/api/state", timeout=5) as reply:
             before = json.load(reply)
         assert before["event"] == "start"
@@ -50,7 +57,7 @@ def main():
             after = json.load(reply)
         assert after["event"] == "met_lyuna", after
         assert len(after["tiles"]) == 6
-        print("PASS browser HTTP: HTML, JS, initial state, Cerune interaction")
+        print("PASS browser HTTP: HTML, JS, sprite sheets, initial state, Cerune interaction")
     finally:
         proc.terminate()
         try:
