@@ -35,7 +35,11 @@ def main():
         base = line.removeprefix("Stelle: ").rstrip("/")
         with request.urlopen(base + "/", timeout=5) as reply:
             assert reply.status == 200
-            assert b'<canvas id="map"' in reply.read()
+            page = reply.read()
+            assert b'<canvas id="map"' in page
+            assert b'id="title-screen"' in page
+            assert b'id="title-start"' in page
+            assert b'id="title-options"' in page
         with request.urlopen(base + "/game.js", timeout=5) as reply:
             assert reply.status == 200
             assert b"render(state)" in reply.read()
