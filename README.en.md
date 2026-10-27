@@ -4,6 +4,26 @@
 
 A small **interactive CLI RPG** written in Cerune. The game's rules live in Cerune, without a duplicate Rust implementation.
 
+## Play in the browser (2D preview)
+
+**Keyboard controls also work from Windows PowerShell.** The existing Cerune `world.ceru` continues to own movement, events and state transitions. JavaScript handles only 2D rendering and input. A localhost-only Python HTTP server launches Cerune over pipes; this is not yet a standalone packaged game or a WebAssembly build.
+
+From the Stelle repository root, with Python 3 and Cerune installed:
+
+```powershell
+python browser/server.py --binary cerune --port 8765
+```
+
+Open <http://127.0.0.1:8765/>. The 2D map **fills the browser viewport**. Use the **Menu** at the top right for controls and options rather than a permanent sidebar. Use **arrows / WASD** to move, **E / Space** to interact, and **R** to restart after confirmation. Dialogue appears over the bottom of the map and can be dismissed. The menu provides fullscreen mode and optional on-screen movement buttons. Stop the server with Ctrl+C.
+
+For now, interact with Lyuna on the starting tile. Presentation text is localized for the browser, but the story and progression rules are unchanged in `src/world.ceru`. The server is **for local use only**, not public hosting.
+
+```sh
+python3 scripts/check_browser.py --binary cerune
+```
+
+The regression test uses the real Cerune binary and covers initial state, movement, completing the puzzle, restart and invalid input. Check browser rendering manually.
+
 ## Run
 
 Build or install the latest [Cerune](https://github.com/Cerune-Lang/Cerune).
